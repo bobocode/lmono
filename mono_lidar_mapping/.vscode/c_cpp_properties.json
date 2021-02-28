@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "home/bo/MonoLidarMapping/devel/include",
+                "/opt/ros/kinetic/include",
+                "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/include",
+                "/home/bo/MonoLidarMapping/src/libviso2/libviso2/src/include",
+                "/home/bo/MonoLidarMapping/src/camera_models/include",
+                "/usr/include"
+            ],
+            "name": "Linux",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}

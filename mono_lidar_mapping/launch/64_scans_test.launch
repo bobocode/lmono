@@ -1,0 +1,20 @@
+<!-- -*- mode: XML -*- -->
+
+<launch>
+
+  <arg name="rviz" default="true" />
+
+  <node pkg="lclio" type="lclio_processor_node" name="lclio_processor" output="screen">
+  	<param name="sensor_type" type="int" value="64" />
+  </node>
+  <node pkg="lclio" type="lclio_odometry_node" name="lclio_odometry" output="screen">
+    <param name="no_deskew" type="bool" value="false" />
+  </node>
+  <node pkg="lclio" type="lclio_mapping_node" name="lclio_mapping" output="screen" />
+
+
+  <group if="$(arg rviz)">
+    <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find lclio)/rviz_cfg/lio_map_builder.rviz" />
+  </group>
+
+</launch>

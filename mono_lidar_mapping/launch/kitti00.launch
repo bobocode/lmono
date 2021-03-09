@@ -2,13 +2,13 @@
 
 <launch>
 
-  <arg name="rviz" default="true" />
-
   <node pkg="monolio" type="monolio_processor_node" name="monolio_processor" output="log">
   	<param name="sensor_type" type="int" value="64" />
   </node>
+
+  <arg name="config_path" default = "$(find monolio)/config/kitti_config_00.yaml" />
   <node pkg = "monolio" type = "monolio_estimator_node" name ="monolio_estimator" output = "screen">
-        <param name = "config_name" type= "string" value ="$find(monolio)/config/kitti_config_00.yaml"/>
+        <param name = "config_file" type= "string" value ="$(arg config_path)"/>
   </node>
 
    

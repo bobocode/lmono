@@ -1,3 +1,17 @@
+/*******************************************************
+* Copyright (C) 2020, Intelligent Positioning and Navigation Lab, Hong Kong Polytechnic University
+*
+* This file is part of lmono.
+* Licensed under the GNU General Public License v3.0;
+* you may not use this file except in compliance with the License.
+
+* If you use this code, please cite the respective publications as
+* listed on the above websites.
+* 
+* Author: Bo Zhang (dreamskybobo@gmail.com)
+* Date: 2021/03/09
+*******************************************************/
+
 #include "image_process/Feature_Tracker.h"
 
 FeatureTracker::FeatureTracker()
@@ -123,15 +137,14 @@ void FeatureTracker::drawTrack(const cv::Mat &imLeft, cv::Mat &imRight,
                                    vector<cv::Point2f> &curLeftPts, 
                                    map<int, cv::Point2f> &prevLeftPtsMap)
 {
-    cv::Mat in[] = {imLeft, imLeft, imLeft};
-    cv::merge(in, 3, imTrack);
-
+    cv::cvtColor(imLeft, imTrack, CV_GRAY2BGR);
+    
     //cv::cvtColor(img, img, CV_GRAY2RGB);
 
     for (size_t j = 0; j < curLeftIds.size(); j++)
     {
         double len = std::min(1.0, 1.0 * track_cnt[j] / 20);
-        cv::circle(imTrack, curLeftPts[j], 1, cv::Scalar(255 * (1 - len), 0, 255 * len), 1);
+        cv::circle(imTrack, curLeftPts[j], 2, cv::Scalar(255 * (1 - len), 0, 255 * len), 3);
     }
 
     std::map<int, cv::Point2f>::iterator mapIt;
@@ -148,8 +161,12 @@ void FeatureTracker::drawTrack(const cv::Mat &imLeft, cv::Mat &imRight,
     std::string save_path = "/home/bo/auto-calib/check/" + to_string(cur_time) + ".jpg";
     cv::imwrite(save_path, imTrack);
 
-    cv::imshow("tracking", imTrack);
-    cv::waitKey(2);
+    //cv::imshow("tracking", imTrack);
+    //cv::waitKey(2);
+}
+cv::Mat FeatureTracker::getTrackImage()
+{
+    return imTrack;
 }
 
 vector<cv::Point2f> FeatureTracker::undistortedPts(vector<cv::Point2f> &pts, camodocal::CameraPtr cam)
@@ -170,8 +187,12 @@ vector<cv::Point2f> FeatureTracker::undistortedPts(vector<cv::Point2f> &pts, cam
 
  map<int, vector<pair<int, Eigen::Matrix<double, 6, 1>>>> FeatureTracker::trackImage(double _cur_time, const cv::Mat &image_l, const cv::Mat &image_r)
  {
-    //printf("tracking..%f\n", _cur_time);
-    cur_img = image_l;
+    //printf("tracking..%f\n", _cur_time)
+    cv::Mat tmp_img;
+    cv::cvtColor(image_l, tmp_img,cv::COLOR_BGR2GRAY,1);
+    cur_img = tmp_img.clone();
+
+    printf("tracking..%f\n", _cur_time);
     cur_time = _cur_time;
 
     if(image_l.empty())

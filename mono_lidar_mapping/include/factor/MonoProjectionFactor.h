@@ -1,3 +1,19 @@
+/*******************************************************
+* Copyright (C) 2020, Intelligent Positioning and Navigation Lab, Hong Kong Polytechnic University
+*
+* This file is part of lmono.
+* Licensed under the GNU General Public License v3.0;
+* you may not use this file except in compliance with the License.
+
+* If you use this code, please cite the respective publications as
+* listed on the above websites.
+* 
+* Author: Bo Zhang (dreamskybobo@gmail.com)
+* Date: 2021/03/09
+
+//Adapted from VINS-mono
+*******************************************************/
+
 #ifndef _MONO_RESIDUAL_INFO_H_
 #define _MONO_RESIDUAL_INFO_H_
 
@@ -5,8 +21,6 @@
 #include <ceres/rotation.h>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Core>
-#include <sophus/so3.h>
-#include <sophus/se3.h>
 //#include <cv.h>
 #include <opencv/highgui.h>
 #include <opencv2/opencv.hpp>

@@ -22,22 +22,22 @@ int main(int argc, char **argv) {
 
     //FLAGS_log_dir = "/home/zjc/LIO_Test_new/LIO_test_ws/src/log";
     google::InitGoogleLogging(argv[0]);
-  FLAGS_alsologtostderr = true;
+    //FLAGS_alsologtostderr = true;
 
-  ros::init(argc, argv, "point_mapping");
+    ros::init(argc, argv, "point_mapping");
 
-  ros::NodeHandle nh("~");;
+    ros::NodeHandle nh("~");;
 
-  PointMapping mapper;
-  mapper.SetupRos(nh);
-  mapper.Reset();
+    PointMapping mapper;
+    mapper.SetupRos(nh);
+    mapper.Reset();
 
-  ros::Rate r(100);
-  while (ros::ok()) {
-    mapper.Process();
-    ros::spinOnce();
-    r.sleep();
-  }
+    ros::Rate r(100);
+    while (ros::ok()) {
+      mapper.Process();
+      ros::spinOnce();
+      r.sleep();
+    }
 
-  return 0;
+    return 0;
 }

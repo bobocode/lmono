@@ -768,7 +768,7 @@ namespace lclio
       pub_start_ori_inferred_.publish(start_ori_inferred_msg);
     } // if
 
-    DLOG(INFO) << "start_ori: " << start_ori_;
+    //DLOG(INFO) << "start_ori: " << start_ori_;
 
     for (int ring = 0; ring < num_rings_; ++ring)
     {
@@ -1234,8 +1234,8 @@ namespace lclio
       p.intensity = int(p.intensity) + rel_time;
     }
 
-    ROS_DEBUG_STREAM("extract features time: " << tic_toc_.Toc() << " ms");
-    DLOG(INFO) << "extract features time: " << tic_toc_.Toc() << " ms";
+    //ROS_DEBUG_STREAM("extract features time: " << tic_toc_.Toc() << " ms");
+    //DLOG(INFO) << "extract features time: " << tic_toc_.Toc() << " ms";
 
   } // ExtractFeaturePoints
 

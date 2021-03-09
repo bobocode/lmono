@@ -1,3 +1,18 @@
+/*******************************************************
+* Copyright (C) 2020, Intelligent Positioning and Navigation Lab, Hong Kong Polytechnic University
+*
+* This file is part of lmono.
+* Licensed under the GNU General Public License v3.0;
+* you may not use this file except in compliance with the License.
+
+* If you use this code, please cite the respective publications as
+* listed on the above websites.
+* 
+* Author: Bo Zhang (dreamskybobo@gmail.com)
+* Date: 2021/03/09
+
+adapted from VINS-mono
+*******************************************************/
 #include "factor/MarginalizationFactor.h"
 
 void ResidualBlockInfo::Evaluate()

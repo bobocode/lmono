@@ -1,3 +1,16 @@
+/*******************************************************
+* Copyright (C) 2020, Intelligent Positioning and Navigation Lab, Hong Kong Polytechnic University
+*
+* This file is part of lmono.
+* Licensed under the GNU General Public License v3.0;
+* you may not use this file except in compliance with the License.
+
+* If you use this code, please cite the respective publications as
+* listed on the above websites.
+* 
+* Author: Bo Zhang (dreamskybobo@gmail.com)
+* Date: 2021/03/09
+*******************************************************/
 #ifndef _PARAMETER_H_
 #define _PARAMETER_H_
 
@@ -48,6 +61,8 @@ extern double SOLVER_TIME;
 extern int NUM_ITERATIONS;
 extern double MIN_DIST;
 extern int USE_IMU;
+extern double PRIOR_T;
+extern double PRIOR_R;
 
 extern int ODOM_IO;
 //extrinsic estimate cam0
@@ -60,9 +75,13 @@ extern Eigen::Vector3d G;
 extern double ACC_N, ACC_W;
 extern double GYR_N, GYR_W;
 extern double G_NORM;
+extern double FILTER_SIZE;
+extern std::string KERNEL_TYPE;
+extern std::string BLUR_TYPE;
+extern int KERNEL_SIZE;
 
 //elas parameters
-extern struct ElasParam ELAS_PARAM;
+//extern struct ElasParam ELAS_PARAM;
 
 void readParameters(ros::NodeHandle &n);
 

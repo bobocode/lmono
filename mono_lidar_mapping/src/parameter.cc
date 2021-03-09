@@ -1,3 +1,16 @@
+/*******************************************************
+* Copyright (C) 2020, Intelligent Positioning and Navigation Lab, Hong Kong Polytechnic University
+*
+* This file is part of lmono.
+* Licensed under the GNU General Public License v3.0;
+* you may not use this file except in compliance with the License.
+
+* If you use this code, please cite the respective publications as
+* listed on the above websites.
+* 
+* Author: Bo Zhang (dreamskybobo@gmail.com)
+* Date: 2021/03/09
+*******************************************************/
 #include "parameter.h"
 
 //int WINDOW_SIZE;
@@ -27,7 +40,12 @@ Eigen::Vector3d G{0.0, 0.0, 9.8};
 Eigen::Matrix4d CAM0_T_CAM1;
 Eigen::Matrix4d IMU_TO_CAM0;
 double FACTOR_WEIGHT;
-ElasParam ELAS_PARAM;
+double PRIOR_T;
+double PRIOR_R;
+double FILTER_SIZE;
+std::string KERNEL_TYPE;
+std::string BLUR_TYPE;
+int KERNEL_SIZE;
 
 int ODOM_IO;
 
@@ -79,7 +97,6 @@ void readParameters(ros::NodeHandle &n)
 
     std::cout << "cam0 calib: " << cam0Calib << std::endl;
 
-
     std::string cam1Calib;
     fsSettings["cam1_calib"] >> cam1Calib;
 
@@ -107,6 +124,12 @@ void readParameters(ros::NodeHandle &n)
     fsSettings["factor_weight"] >> FACTOR_WEIGHT;
     fsSettings["laser_w"] >> LASER_W;
     fsSettings["odom_io"] >> ODOM_IO;
+    fsSettings["prior_t"] >> PRIOR_T;
+    fsSettings["prior_r"] >> PRIOR_R;
+    fsSettings["filter_size"] >> FILTER_SIZE;
+    fsSettings["kernel_type"] >> KERNEL_TYPE;
+    fsSettings["blur_type"] >> BLUR_TYPE;
+    fsSettings["kernel_size"] >> KERNEL_SIZE;
     G.z() = G_NORM;
     //fsSettings["window_size"] >> WINDOW_SIZE;
 

@@ -1,3 +1,18 @@
+/*******************************************************
+* Copyright (C) 2020, Intelligent Positioning and Navigation Lab, Hong Kong Polytechnic University
+*
+* This file is part of lmono.
+* Licensed under the GNU General Public License v3.0;
+* you may not use this file except in compliance with the License.
+
+* If you use this code, please cite the respective publications as
+* listed on the above websites.
+* 
+* Author: Bo Zhang (dreamskybobo@gmail.com)
+* Date: 2021/03/09
+
+adapted from VINS-mono
+*******************************************************/
 #include "image_process/Feature_Manager.h"
 
 FeaturePerId::~FeaturePerId(){}
@@ -98,11 +113,16 @@ void FeatureManager::triangulate(int frameCnt,  Eigen::Matrix3d Rs[], Eigen::Vec
             //printf("stereo feature %d depth: %f\n", it_per_id.feature_id, it_per_id.estimated_depth);
             //printf("two frame feature %d depth: %f\n", it_per_id.feature_id, localPoint.z());
 
-            if(localPoint.z() >0.2)
+            if(localPoint.z() > 0.2)
             {
                 it_per_id.estimated_depth = localPoint.z();
                 continue;
+
+            }else
+            {
+                it_per_id.estimated_depth = -1;
             }
+            
 
         }
 
@@ -225,12 +245,12 @@ double FeatureManager::computeParallax(const FeaturePerId &it_per_id, int frame_
     //check the new frame is a keyframe or not 
 
     //prev frame
-    const FeaturePerFrame &frame_i = it_per_id.feature_per_frame[frame_count-1-it_per_id.start_frame];
+    const FeaturePerFrame &frame_i = it_per_id.feature_per_frame[frame_count - 2 -it_per_id.start_frame];
 
     //ROS_INFO_STREAM("frame i: " << frame_i.pt.transpose());
 
     //new coming frame
-    const FeaturePerFrame &frame_j = it_per_id.feature_per_frame[frame_count-it_per_id.start_frame];
+    const FeaturePerFrame &frame_j = it_per_id.feature_per_frame[frame_count  -1 -it_per_id.start_frame];
     //ROS_INFO_STREAM("frame j: " << frame_j.pt.transpose());
 
     double ans=0;
@@ -238,18 +258,18 @@ double FeatureManager::computeParallax(const FeaturePerId &it_per_id, int frame_
     Eigen::Vector3d p_i;
     Eigen::Vector3d p_j;
 
-    p_i.x() = frame_i.pt.x();
-    p_i.y() = frame_i.pt.y();
+    p_i.x() = frame_i.uv.x();
+    p_i.y() = frame_i.uv.y();
     p_i.z() = 1.0;
 
-    p_j.x() = frame_j.pt.x();
-    p_j.y() = frame_j.pt.y();
+    p_j.x() = frame_j.uv.x();
+    p_j.y() = frame_j.uv.y();
     p_j.z() = 1.0;
 
     double du = p_i(0)-p_j(0);
     double dv = p_i(1)-p_j(1);
 
-    ans = du*du + dv*dv;
+    ans = max(ans, sqrt(du * du + dv * dv));
 
     return ans;
 
@@ -302,7 +322,7 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
     printf("last track num: %d\n", last_track_num);
     printf("new feature num: %d\n", new_feature_num);
 
-    if(frame_count <2 || last_track_num <20 || new_feature_num > 0.5 * last_track_num)
+    if(frame_count <2 || last_track_num <20 || long_track_num < 40 ||new_feature_num > 0.5 * last_track_num)
     {
         return true;
     }
@@ -311,8 +331,8 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
     {
         int used_num = it_per_id.feature_per_frame.size();
         //printf("used num: %d\n", used_num);
-        if (it_per_id.start_frame <= frame_count - 1 &&
-            it_per_id.start_frame + int(it_per_id.feature_per_frame.size()) - 1 >= frame_count)
+        if (it_per_id.start_frame <= frame_count - 2 &&
+            it_per_id.start_frame + int(it_per_id.feature_per_frame.size()) - 1 >= frame_count-1)
         {
             parallax_sum += computeParallax(it_per_id,frame_count);
             parallax_num++;
@@ -325,8 +345,8 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
 
     }else
     {
-        //printf("parallax_sum: %lf, parallax_num: %d \n", parallax_sum, parallax_num);
-        //printf("current parallax: %lf \n", parallax_sum / parallax_num * FOCAL_LENGTH);
+        printf("parallax_sum: %lf, parallax_num: %d \n", parallax_sum, parallax_num);
+        printf("current parallax: %lf \n",  parallax_sum / parallax_num);
 
         return parallax_sum / parallax_num >= FEATURE_THRESHOLD;
     }
@@ -465,7 +485,7 @@ void FeatureManager::removeFront(int frame_count)
                 continue;
             }
                 
-            it->feature_per_frame.erase(it->feature_per_frame.begin()+j);
+            it->feature_per_frame.erase(it->feature_per_frame.begin() + j);
             if(it->feature_per_frame.size()==0)
             {
                 feature.erase(it);

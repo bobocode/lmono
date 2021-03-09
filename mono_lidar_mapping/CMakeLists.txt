@@ -3,7 +3,7 @@ project(monolio)
 message("$PROJECT_SOURCE_DIR")
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++14)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "-std=c++11")
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
@@ -56,7 +56,7 @@ include_directories(${OpenCV_INCLUDE_DIR})
 find_package(Ceres REQUIRED)
 include_directories(${CERES_INCLUDE_DIR})
 
-find_package(Boost REQUIRED COMPONENTS signals)
+find_package(Boost REQUIRED COMPONENTS signals thread)
 
 include_directories(${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
@@ -96,6 +96,11 @@ add_library(${PROJECT_NAME}-point-processor
   src/laser_odometry/PointProcessor.cc
 )
 
+add_library(${PROJECT_NAME}-visualizer
+  src/visualizer/Visualizer.cc
+  src/visualizer/DepthMapUtil.cc
+)
+
 add_library(${PROJECT_NAME}-initial
    src/initial/AxxbSolver.cc
    src/initial/SFM.cc
@@ -105,7 +110,7 @@ add_library(${PROJECT_NAME}-initial
 set(factor_EXT_LIBS
   ${PROJECT_NAME}-initial
   ${catkin_LIBRARIES}
-  ${monolio_EXT_LIBS}
+  ${point_processor_EXT_LIBS}
   ceres
 )
 
@@ -162,13 +167,16 @@ add_dependencies(${PROJECT_NAME}_estimator_node
   ${PROJECT_NAME}-factor
   ${PROJECT_NAME}-initial
   ${PROJECT_NAME}-point-processor
+  ${PROJECT_NAME}-visualizer
 )
 target_link_libraries(${PROJECT_NAME}_estimator_node
-  ${PROJECT_NAME}-imu-processor
+  ${PROJECT_NAME}-image-process
   ${PROJECT_NAME}-factor
-  ${PROJECT_NAME}-feature-manager
+  ${PROJECT_NAME}-initial
   ${PROJECT_NAME}-point-processor
-  ${img_process_EXT_LIBS}
+  ${PROJECT_NAME}-visualizer
+  ${image_process_EXT_LIBS}
+  pthread
 )
 
 

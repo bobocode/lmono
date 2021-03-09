@@ -5,8 +5,6 @@
 #include <opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Core>
-#include <sophus/so3.h>
-#include <sophus/se3.h>
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 

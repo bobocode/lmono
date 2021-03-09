@@ -647,7 +647,7 @@ void PointOdometry::Process() {
             pow(mat_X(5, 0) * 100, 2));
 
         if (delta_r < delta_r_abort_ && delta_t < delta_t_abort_) {
-          DLOG(INFO) << "iter_count: " << iter_count;
+          //DLOG(INFO) << "point odometry iter_count: " << iter_count;
           break;
         }
 
@@ -663,7 +663,7 @@ void PointOdometry::Process() {
     TransformToEnd(surf_points_less_flat_);
 
     transform_es_.rot.normalize();
-    DLOG(INFO) << "transform diff: " << transform_es_;
+    //DLOG(INFO) << "transform diff: " << transform_es_;
   } /// enable odom
 
   corner_points_less_sharp_.swap(last_corner_cloud_); // NOTE: move current less feature points into last clouds

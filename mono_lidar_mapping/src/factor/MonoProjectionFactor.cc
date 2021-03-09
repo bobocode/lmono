@@ -1,3 +1,16 @@
+/*******************************************************
+* Copyright (C) 2020, Intelligent Positioning and Navigation Lab, Hong Kong Polytechnic University
+*
+* This file is part of lmono.
+* Licensed under the GNU General Public License v3.0;
+* you may not use this file except in compliance with the License.
+
+* If you use this code, please cite the respective publications as
+* listed on the above websites.
+* 
+* Author: Bo Zhang (dreamskybobo@gmail.com)
+* Date: 2021/03/09
+*******************************************************/
 #include "factor/MonoProjectionFactor.h"
 
 Eigen::Matrix2d MonoProjectionFactor::sqrt_info;
@@ -107,9 +120,17 @@ bool MonoProjectionFactor::Evaluate(double const *const *parameters, double *res
 //     reduce << 1. /dep_cj, 0, -pts_cj(0) / (dep_cj * dep_cj),
 //             0, 1. /dep_cj, -pts_cj(1) /(dep_cj * dep_cj);
 // #endif
-
-    reduce << 1. /dep_cj, 0, -pts_cj(0) / (dep_cj * dep_cj),
-        0, 1. /dep_cj, -pts_cj(1) /(dep_cj * dep_cj);
+    double norm = pts_cj.norm();
+    Eigen::Matrix3d norm_jaco;
+    double x1, x2, x3;
+    x1 = pts_cj(0);
+    x2 = pts_cj(1);
+    x3 = pts_cj(2);
+    norm_jaco << 1.0 / norm - x1 * x1 / pow(norm, 3), - x1 * x2 / pow(norm, 3),            - x1 * x3 / pow(norm, 3),
+                    - x1 * x2 / pow(norm, 3),            1.0 / norm - x2 * x2 / pow(norm, 3), - x2 * x3 / pow(norm, 3),
+                    - x1 * x3 / pow(norm, 3),            - x2 * x3 / pow(norm, 3),            1.0 / norm - x3 * x3 / pow(norm, 3);
+    reduce = tangent_base * norm_jaco;
+    
 
     reduce = sqrt_info * reduce;
 

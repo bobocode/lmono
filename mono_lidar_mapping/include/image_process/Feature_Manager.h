@@ -1,3 +1,18 @@
+/*******************************************************
+* Copyright (C) 2020, Intelligent Positioning and Navigation Lab, Hong Kong Polytechnic University
+*
+* This file is part of lmono.
+* Licensed under the GNU General Public License v3.0;
+* you may not use this file except in compliance with the License.
+
+* If you use this code, please cite the respective publications as
+* listed on the above websites.
+* 
+* Author: Bo Zhang (dreamskybobo@gmail.com)
+* Date: 2021/03/09
+
+Adapted from VINS-Mono
+*******************************************************/
 #ifndef _FEATURE_MANAGER_H_
 #define _FEATURE_MANAGER_H_
 
@@ -73,7 +88,7 @@ class ImageFrame
 {
     public:
         ImageFrame(){};
-        ImageFrame( double t,const std::map<int,std::vector<std::pair<int, Eigen::Matrix<double,6,1>>>>& _points,const Eigen::Matrix4d &laser_P,const Eigen::Matrix4d camera_P = Eigen::Matrix4d::Identity()):t{t}
+        ImageFrame( const std::map<int,std::vector<std::pair<int, Eigen::Matrix<double,6,1>>>>& _points,double t,const Eigen::Matrix4d &laser_P,const Eigen::Matrix4d camera_P = Eigen::Matrix4d::Identity()):t{t}
         {   
             // std::cout << "cam_P: \n" << camera_P.matrix() << std::endl;
             // std::cout << "laser_P: \n" << laser_P.matrix() << std::endl;

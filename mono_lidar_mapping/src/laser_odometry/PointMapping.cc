@@ -860,7 +860,7 @@ void PointMapping::OptimizeTransformTobeMapped() {
         pow(mat_X(5, 0) * 100, 2));
 
     if (delta_r < delta_r_abort_ && delta_t < delta_t_abort_) {
-      DLOG(INFO) << "iter_count: " << iter_count;
+      //DLOG(INFO) << "point mapping iter_count: " << iter_count;
       break;
     }
   }

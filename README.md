@@ -5,5 +5,5 @@ automatic calibration between LiDAR and a single camera is procided as well.
 - [x] laser odometry
 - [x] scene recognition/ loop detection
 - [x] automatic and real-time calibration
-- [x] 3D dense map
+- [x] 3D dense map with color information
 

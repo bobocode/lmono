@@ -31,8 +31,7 @@ class MonoProjectionFactor: public ceres::SizedCostFunction<2,7,7,7,1>
 {
     public:
         ~MonoProjectionFactor(){};
-        MonoProjectionFactor(const Eigen::Vector2d &pt_i, const Eigen::Vector2d &pt_j, const Eigen::Vector2d &velocity_i,
-                     const Eigen::Vector2d &velocity_j, const double td_i, const double td_j);
+        MonoProjectionFactor(const Eigen::Vector2d &pt_i, const Eigen::Vector2d &pt_j);
         virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
         void check(double **parameters);
 

@@ -13,6 +13,9 @@
 *******************************************************/
 #include "parameter.h"
 
+Eigen::Vector3d tlc;
+Eigen::Matrix3d qlc;
+
 //int WINDOW_SIZE;
 double MIN_PARALLAX;
 std::string IMAGE0_TOPIC, IMAGE1_TOPIC;
@@ -46,24 +49,20 @@ double FILTER_SIZE;
 std::string KERNEL_TYPE;
 std::string BLUR_TYPE;
 int KERNEL_SIZE;
+int DEBUG_IMAGE;
 
 int ODOM_IO;
 
-template <typename T>
-T readParam(ros::NodeHandle &n, std::string name)
-{
-    T ans;
-    if (n.getParam(name, ans))
-    {
-        ROS_INFO_STREAM("Loaded " << name << ": " << ans);
-    }
-    else
-    {
-        ROS_ERROR_STREAM("Failed to load " << name);
-        n.shutdown();
-    }
-    return ans;
-}
+int SKIP_CNT;
+double SKIP_DIS;
+double SKIP_TIME;
+std::string BRIEF_PATTERN_FILE;
+double LOOP_SEARCH_TIME;
+int LOOP_SEARCH_GAP;
+int ROW;
+int COL;
+int MIN_PNP_LOOP_NUM;
+int MIN_BRIEF_LOOP_NUM;
 
 void readParameters(ros::NodeHandle &n)
 {
@@ -102,6 +101,9 @@ void readParameters(ros::NodeHandle &n)
 
     std::cout << "cam1 calib: " << cam1Calib << std::endl;
 
+    ROW = fsSettings["image_height"];
+    COL = fsSettings["image_width"];
+
     CAM_NAMES.push_back(cam0Calib);
     CAM_NAMES.push_back(cam1Calib);
 
@@ -130,6 +132,14 @@ void readParameters(ros::NodeHandle &n)
     fsSettings["kernel_type"] >> KERNEL_TYPE;
     fsSettings["blur_type"] >> BLUR_TYPE;
     fsSettings["kernel_size"] >> KERNEL_SIZE;
+    fsSettings["skip_dis"] >> SKIP_DIS;
+    fsSettings["skip_cnt"] >> SKIP_CNT;
+    fsSettings["debug_image"] >> DEBUG_IMAGE;
+    fsSettings["loop_search_time"] >> LOOP_SEARCH_TIME;
+    fsSettings["loop_search_gap"] >> LOOP_SEARCH_GAP;
+    fsSettings["skip_time"] >> SKIP_TIME;
+    fsSettings["min_pnp_loop_num"] >> MIN_PNP_LOOP_NUM;
+    fsSettings["min_brief_loop_num"] >> MIN_BRIEF_LOOP_NUM;
     G.z() = G_NORM;
     //fsSettings["window_size"] >> WINDOW_SIZE;
 
@@ -137,8 +147,21 @@ void readParameters(ros::NodeHandle &n)
     fsSettings["cam0_T_cam1"] >> cv_T;
     cv::cv2eigen(cv_T, CAM0_T_CAM1);
 
+    BRIEF_PATTERN_FILE = "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/support_files/brief_pattern.yml";
+
     std::cout << "cam0 to cam1: \n" << CAM0_T_CAM1.matrix() << std::endl;
 
+    // for(int i=0; i<ROW;++i)
+    // {
+    //     for(int j =0; j < COL; ++j)
+    //     {
+    //         if(j <256 || j > COL-256)
+    //         {
+    //             MASK.at<uchar>(i,j) = 0;
+    //         }
+    //     }
+    // }
+                                
     if(USE_IMU)
     {
         cv::Mat imu_to_cam0;

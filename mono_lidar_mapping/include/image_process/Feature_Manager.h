@@ -29,8 +29,6 @@ Adapted from VINS-Mono
 #include <ceres/ceres.h>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Core>
-#include <sophus/so3.h>
-#include <sophus/se3.h>
 
 #include <cv.h>
 #include <opencv/highgui.h>

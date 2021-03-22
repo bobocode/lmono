@@ -18,7 +18,6 @@ void GlobalSFM::triangulatePoint(Eigen::Matrix<double, 3, 4> &Pose0, Eigen::Matr
 	point_3d(2) = triangulated_point(2) / triangulated_point(3);
 }
 
-
 bool GlobalSFM::solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i,
 								vector<SFMFeature> &sfm_f)
 {
@@ -249,7 +248,7 @@ bool GlobalSFM::construct(int frame_num, Quaterniond* q, Vector3d* T, int l,
 		{
 			problem.SetParameterBlockConstant(c_rotation[i]);
 		}
-		if (i == l || i == frame_num - 1)
+		if (i == l)
 		{
 			problem.SetParameterBlockConstant(c_translation[i]);
 		}

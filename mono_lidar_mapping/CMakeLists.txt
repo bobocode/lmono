@@ -124,9 +124,25 @@ add_dependencies(${PROJECT_NAME}-factor
   ${PROJECT_NAME}-initial
 )
 
-set(image_process_EXT_LIBS
-  ${factor_EXT_LIBS}
+add_library(${PROJECT_NAME}-loop-detection
+  src/loop_detection/KeyFrame.cc
+  src/loop_detection/LoopDetector.cc
+  src/loop_detection/DBoW/BowVector.cpp
+  src/loop_detection/DBoW/FBrief.cpp
+  src/loop_detection/DBoW/FeatureVector.cpp
+  src/loop_detection/DBoW/QueryResults.cpp
+  src/loop_detection/DBoW/ScoringObject.cpp
+  src/loop_detection/DUtils/Random.cpp
+  src/loop_detection/DUtils/Timestamp.cpp
+  src/loop_detection/VocabularyBinary.cpp
+  src/loop_detection/DVision/BRIEF.cpp
 )
+
+set(loop_detection_EXT_LIBS
+  ${catkin_LIBRARIES}
+  ${monolio_EXT_LIBS}  
+)
+
 
 add_library(${PROJECT_NAME}-image-process
   src/image_process/CameraModel.cc
@@ -136,6 +152,9 @@ add_library(${PROJECT_NAME}-image-process
   src/image_process/MeasurementManager.cc
 )
 
+set(image_process_EXT_LIBS
+    ${factor_EXT_LIBS}
+)
 
 add_executable(${PROJECT_NAME}_processor_node src/processor_node.cc)
 add_dependencies(${PROJECT_NAME}_processor_node ${PROJECT_NAME}-point-processor)
@@ -178,5 +197,20 @@ target_link_libraries(${PROJECT_NAME}_estimator_node
   ${image_process_EXT_LIBS}
   pthread
 )
+
+add_executable(${PROJECT_NAME}_loop_detection_node 
+    src/loop_detection_node.cc                             
+)
+
+add_dependencies(${PROJECT_NAME}_loop_detection_node
+  ${PROJECT_NAME}-loop-detection
+)
+target_link_libraries(${PROJECT_NAME}_loop_detection_node
+  ${PROJECT_NAME}-loop-detection
+  ${loop_detection_EXT_LIBS}
+  pthread
+)
+
+
 
 

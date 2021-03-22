@@ -15,26 +15,15 @@
 
 Eigen::Matrix2d MonoProjectionFactor::sqrt_info;
 
-MonoProjectionFactor::MonoProjectionFactor(const Eigen::Vector2d &pt_i, const Eigen::Vector2d &pt_j, const Eigen::Vector2d &velocity_i,
-                     const Eigen::Vector2d &velocity_j, const double td_i, const double td_j): 
-                    _td_i(td_i), _td_j(td_j)
+MonoProjectionFactor::MonoProjectionFactor(const Eigen::Vector2d &pt_i, const Eigen::Vector2d &pt_j)
 {
     _pt_i.x() = pt_i.x();
     _pt_i.y() = pt_i.y();
     _pt_i.z() = 1.0;
 
-    _velocity_i.x() = velocity_i.x();
-    _velocity_i.y() = velocity_i.y();
-    _velocity_i.z() = 0.0;
-
     _pt_j.x() = pt_j.x();
     _pt_j.y() = pt_j.y();
     _pt_j.z() = 1.0;
-
-    _velocity_j.x() = velocity_j.x();
-    _velocity_j.y() = velocity_j.y();
-    _velocity_j.z() = 0.0;
-
 
     Eigen::Vector3d b1, b2;
     Eigen::Vector3d a = _pt_j.normalized();

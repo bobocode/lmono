@@ -248,6 +248,17 @@ inline Eigen::Matrix<typename Derived::Scalar, 3, 3> ypr2R(const Eigen::MatrixBa
   return Rz * Ry * Rx;
 }
 
+template <typename T>
+static T normalizeAngle(const T& angle_degrees) {
+  T two_pi(2.0 * 180);
+  if (angle_degrees > 0)
+  return angle_degrees -
+      two_pi * std::floor((angle_degrees + T(180)) / two_pi);
+  else
+    return angle_degrees +
+        two_pi * std::floor((-angle_degrees + T(180)) / two_pi);
+}
+
 } // namespance mathutils
 
 #endif //_MATH_UTILS_H_

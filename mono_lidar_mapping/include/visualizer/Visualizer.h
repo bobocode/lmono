@@ -52,6 +52,8 @@ class Visualizer
         void pubNewCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_cloud, double t);
         void pubOriginalOdom(const Eigen::Vector3d &P, const Eigen::Quaterniond &Q, double t);
         void pubNewOdom(const Eigen::Vector3d &P, const Eigen::Quaterniond &Q, double t);
+        void pubExtrinsic(const Eigen::Vector3d &P, const Eigen::Matrix3d &R, double t);
+        void pubKeyframePoints(const sensor_msgs::PointCloud &point_cloud);
 
         void generateRGBPointCloud();
         cv::Point2f Point3DTo2D(const pcl::PointXYZ &pt);
@@ -63,6 +65,8 @@ class Visualizer
         ros::Publisher pub_original_odom_, pub_new_odom_;
         ros::Publisher pub_projection_, pub_depth_map_, pub_img_track_;
         ros::Publisher pub_rgb_cloud_;
+        ros::Publisher pub_extrinsic_;
+        ros::Publisher pub_keyframe_point_;
 };
 
 class CloudVisualizer{

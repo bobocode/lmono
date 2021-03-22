@@ -249,7 +249,7 @@ void PointMapping::CompactDataHandler(const sensor_msgs::PointCloud2ConstPtr &co
   new_laser_full_cloud_ = true;
   new_laser_odometry_ = true;
 
-  DLOG(INFO) << "decode compact data time: " << tic_toc_decoder.Toc() << " ms";
+  //DLOG(INFO) << "decode compact data time: " << tic_toc_decoder.Toc() << " ms";
 }
 
 void PointMapping::LaserCloudCornerLastHandler(const sensor_msgs::PointCloud2ConstPtr &corner_points_sharp_msg) {

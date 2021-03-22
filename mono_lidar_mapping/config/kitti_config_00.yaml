@@ -18,9 +18,17 @@ cam1_calib: "/home/bo/auto-calib/src/auto_calib/config/cam01.yaml"
 image_width: 1241
 image_height: 376
 
-prior_t: 10000
+prior_t: 1000
 prior_r: 1000
 
+min_pnp_loop_num: 5
+min_brief_loop_num: 25
+skip_time: 0.2
+skip_dis: 0.5
+skip_cnt: 0
+loop_search_time: 2.0
+loop_search_gap: 100
+debug_image: 1
 camera_height: 1.65
 camera_pitch: 0.0
 open_viso: 0
@@ -28,7 +36,7 @@ stereo: 1
 window_size: 10
 feature_threshold: 10
 solver_time: 30
-num_iteration: 50
+num_iteration: 30
 min_dist: 30
 acc_n: 0.1          # accelerometer measurement noise standard deviation. #0.2   0.04
 gyr_n: 0.01         # gyroscope measurement noise standard deviation.     #0.05  0.004
@@ -36,7 +44,7 @@ acc_w: 0.001         # accelerometer bias random work noise standard deviation. 
 gyr_w: 1.0e-4       # gyroscope bias random work noise standard deviation.     #4.0e-5
 g_norm: 9.81007
 factor_weight: 1500
-laser_w: 1
+laser_w: 2
 odom_io: 1 #interval frame to public data 
 filter_size: 11
 kernel_type: CROSS

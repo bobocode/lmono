@@ -179,6 +179,7 @@ vector<cv::Point2f> FeatureTracker::undistortedPts(vector<cv::Point2f> &pts, cam
         Eigen::Vector3d b;
         cam->liftProjective(a,b);
         un_pts.push_back(cv::Point2f(b.x()/b.z(), b.y()/b.z()));
+        //printf("normallized pts: %f, %f\n", b.x()/b.z(), b.y()/b.z());
     }
 
     return un_pts;
@@ -192,7 +193,7 @@ vector<cv::Point2f> FeatureTracker::undistortedPts(vector<cv::Point2f> &pts, cam
     cv::cvtColor(image_l, tmp_img,cv::COLOR_BGR2GRAY,1);
     cur_img = tmp_img.clone();
 
-    printf("tracking..%f\n", _cur_time);
+    //printf("tracking..%f\n", _cur_time);
     cur_time = _cur_time;
 
     if(image_l.empty())

@@ -30,6 +30,7 @@
 #include <opencv/highgui.h>
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
+#include <opencv2/features2d/features2d.hpp>
 #include <boost/foreach.hpp>
 #include "opencv2/opencv.hpp"
 
@@ -39,8 +40,16 @@
 
 //#define UNIT_SPHERE_ERROR
 
+#define RED   "\x1B[31m"
+#define YEL   "\x1B[33m"
+#define WHT   "\x1B[37m"
+
+extern Eigen::Vector3d tlc;
+extern Eigen::Matrix3d qlc;
+
 const double FOCAL_LENGTH =460;
 const int WINDOW_SIZE  = 10;
+const int SKIP_FIRST_CNT = 10;
 
 extern double MIN_PARALLAX;
 extern std::string IMAGE0_TOPIC, IMAGE1_TOPIC;
@@ -80,8 +89,38 @@ extern std::string KERNEL_TYPE;
 extern std::string BLUR_TYPE;
 extern int KERNEL_SIZE;
 
+//loop
+extern int SKIP_CNT;
+extern double SKIP_DIS;
+extern int DEBUG_IMAGE;
+extern std::string BRIEF_PATTERN_FILE;
+extern int ROW;
+extern int COL;
+extern double LOOP_SEARCH_TIME;
+extern double SKIP_TIME;
+extern int LOOP_SEARCH_GAP;
+extern cv::Mat MASK;
+extern int MIN_PNP_LOOP_NUM;
+extern int MIN_BRIEF_LOOP_NUM;
+extern std::string CAM0;
 //elas parameters
 //extern struct ElasParam ELAS_PARAM;
+
+template <typename T>
+T readParam(ros::NodeHandle &n, std::string name)
+{
+    T ans;
+    if (n.getParam(name, ans))
+    {
+        ROS_INFO_STREAM("Loaded " << name << ": " << ans);
+    }
+    else
+    {
+        ROS_ERROR_STREAM("Failed to load " << name);
+        n.shutdown();
+    }
+    return ans;
+}
 
 void readParameters(ros::NodeHandle &n);
 

@@ -16,8 +16,9 @@
 
 void MeasurementManager::setupRos(ros::NodeHandle &nh)
 {
-    sub_image_ = nh.subscribe(IMAGE0_TOPIC, 5, &MeasurementManager::ImageHandler, this);
-    sub_compact_data_ = nh.subscribe("/compact_data",5, &MeasurementManager::CompactDatahandler,this);
+    sub_image_ = nh.subscribe(IMAGE0_TOPIC, 500, &MeasurementManager::ImageHandler, this);
+    sub_compact_data_ = nh.subscribe("/compact_data",500, &MeasurementManager::CompactDatahandler,this);
+    sub_matched_points_ = nh.subscribe("/monolio_loop_detection/matched_points",2000, &MeasurementManager::LoopHandler,this);
     //sub_original_points_ = nh.subscribe(POINTS_TOPIC, 10, &MeasurementManager::PointCloudHandler,this);
     
     //sub_laser_odom_ = nh.subscribe(LASER_ODOM_TOPIC, 10, &MeasurementManager::LaserOdomHandler,this);
@@ -28,43 +29,74 @@ PairMeasurements MeasurementManager::GetMeasurements()
     PairMeasurements measurements;
     while(1)
     {
-        if(!img0_buf.empty() && !compact_data_buf.empty())
+        if(img0_buf.empty() || compact_data_buf.empty())
         {
-            double time0 = img0_buf.front()->header.stamp.toSec();
-            double time1 = compact_data_buf.front()->header.stamp.toSec();
+            return measurements;
+        }
 
-            if(time0 < time1 - 0.003)
+        if(img0_buf.front()->header.stamp.toSec() < compact_data_buf.front()->header.stamp.toSec() - 0.003)
+        {
+            img0_buf.pop();
+        }else if(img0_buf.front()->header.stamp.toSec() > compact_data_buf.front()->header.stamp.toSec() + 0.003)
+        {
+            compact_data_buf.pop();
+        }else
+        {
+             sensor_msgs::PointCloud2ConstPtr compact_data_msg = compact_data_buf.front();
+            compact_data_buf.pop();
+
+            sensor_msgs::ImageConstPtr img_msg = img0_buf.front();
+            img0_buf.pop();
+
+            //ROS_INFO_STREAM("mearure img with stamp " << img_msg->header.stamp.toSec());
+            //ROS_INFO_STREAM("measure laser with stamp " << compact_data_msg->header.stamp.toSec());
+
+            measurements.emplace_back(img_msg, compact_data_msg);
+            return measurements;
+        }
+    }
+
+    return measurements;
+}
+
+vector<sensor_msgs::PointCloudConstPtr> MeasurementManager::LoopMeasurements()
+{
+   std::vector<sensor_msgs::PointCloudConstPtr> loop_measurements;
+    while(true)
+    {
+        sensor_msgs::PointCloudConstPtr loop_msg = NULL;
+
+        //printf(RED"check loop buf\n" WHT)
+
+        if(!loop_buf.empty())
+        {   
+            loop_msg = loop_buf.front();
+            loop_buf.pop();
+            printf(RED"loop buf is not empty %f\n" WHT, loop_msg->header.stamp.toSec());
+
+            if(loop_msg != NULL)
             {
-                img0_buf.pop();
-                return measurements;
-
-            }else if(time0 > time1 + 0.003)
-            {
-                compact_data_buf.pop();
-                return measurements;
-
-            }else
-            {   
-                sensor_msgs::PointCloud2ConstPtr compact_data_msg = compact_data_buf.front();
-                compact_data_buf.pop();
-
-                sensor_msgs::ImageConstPtr img_msg = img0_buf.front();
-                img0_buf.pop();
-
-                //ROS_INFO_STREAM("mearure img with stamp " << time0);
-                //ROS_INFO_STREAM("measure laser with stamp " << time1);
-
-                measurements.emplace_back(img_msg, compact_data_msg);
-
-                return measurements;
+                loop_measurements.push_back(loop_msg);
+                return loop_measurements;
             }
 
         }else
         {
-            return measurements;
+            return loop_measurements;
         }
-        
     }
+
+    return loop_measurements;
+
+}
+
+void MeasurementManager::LoopHandler(const sensor_msgs::PointCloudConstPtr &loop_msg)
+{
+    printf(RED"loop detection received %f\n"WHT, loop_msg->header.stamp.toSec());
+    loop_mutex_.lock();
+    loop_buf.push(loop_msg);
+    loop_mutex_.unlock();
+    con_.notify_one();
 }
 
 void MeasurementManager::LaserOdomHandler(const nav_msgs::Odometry::ConstPtr &laser_odom_msg)
@@ -89,6 +121,7 @@ void MeasurementManager::PointCloudHandler(const sensor_msgs::PointCloud2ConstPt
 void MeasurementManager::CompactDatahandler(const sensor_msgs::PointCloud2ConstPtr &compact_data_msg)
 {
     compact_buf_mutex_.lock();
+    //ROS_INFO_STREAM("receiving pts data " << compact_data_msg->header.stamp.toSec());
     compact_data_buf.push(compact_data_msg);
     compact_buf_mutex_.unlock();
     con_.notify_one();

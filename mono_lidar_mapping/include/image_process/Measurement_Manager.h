@@ -32,6 +32,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/PointCloud.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/time_synchronizer.h>
@@ -52,6 +53,7 @@ using namespace std;
 typedef std::pair<sensor_msgs::ImageConstPtr,sensor_msgs::PointCloud2ConstPtr> PairMeasurement;
 typedef vector<PairMeasurement> PairMeasurements;
 
+
 class MeasurementManager
 {
     public:
@@ -61,7 +63,9 @@ class MeasurementManager
         void ImagesHandler(const sensor_msgs::ImageConstPtr &img0_msg, const sensor_msgs::ImageConstPtr &img1_msg);
         void ImageHandler(const sensor_msgs::ImageConstPtr &img0_msg);
         void CompactDatahandler(const sensor_msgs::PointCloud2ConstPtr &compact_data_msg);
+        void LoopHandler(const sensor_msgs::PointCloudConstPtr &loop_msg);
         PairMeasurements GetMeasurements();
+        vector<sensor_msgs::PointCloudConstPtr> LoopMeasurements();
 
     protected:
         ros::NodeHandle nh_;
@@ -69,15 +73,18 @@ class MeasurementManager
         std::mutex img_buf_mutex_;
         std::mutex laser_buf_mutex_;
         std::mutex compact_buf_mutex_;
+        std::mutex loop_mutex_;
         std::mutex state_mutex_;
         std::mutex thread_mutex_;
         std::condition_variable con_;
+        std::condition_variable loop_con_;
 
         std::queue<sensor_msgs::ImageConstPtr> img0_buf;
         std::queue<sensor_msgs::ImageConstPtr> img1_buf;
         std::queue<nav_msgs::Odometry::ConstPtr> laser_odometry_buf;
         std::queue<sensor_msgs::PointCloud2ConstPtr> compact_data_buf;
         std::queue<sensor_msgs::PointCloud2ConstPtr> laser_data_buf;
+        std::queue<sensor_msgs::PointCloudConstPtr> loop_buf;
 
         //message_filters::Subscriber<sensor_msgs::Image> sub_img0(nh,IMAGE0_TOPIC,100);
         //message_filters::Subscriber<sensor_msgs::Image> sub_img1(nh, IMAGE1_TOPIC,100);
@@ -86,6 +93,7 @@ class MeasurementManager
         ros::Subscriber sub_laser_odom_;
         ros::Subscriber sub_compact_data_;
         ros::Subscriber sub_original_points_;
+        ros::Subscriber sub_matched_points_;
 
 };
 

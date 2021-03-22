@@ -38,10 +38,16 @@ void FeatureManager::setDepth(const Eigen::VectorXd &x)
     for (auto &it_per_id : feature)
     {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
+
+        if(it_per_id.start_frame >= WINDOW_SIZE-2)
+            continue;
+        
+        ++feature_index;
+
         if (it_per_id.used_num < 4)
             continue;
 
-        it_per_id.estimated_depth = 1.0 / x(++feature_index);
+        it_per_id.estimated_depth = 1.0 / x(feature_index);
         //ROS_INFO("feature id %d , start_frame %d, depth %f ", it_per_id->feature_id, it_per_id-> start_frame, it_per_id->estimated_depth);
         if (it_per_id.estimated_depth < 0)
         {
@@ -59,10 +65,16 @@ Eigen::VectorXd FeatureManager::getDepthVector()
     for (auto &it_per_id : feature)
     {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
+
+        if(it_per_id.start_frame >= WINDOW_SIZE-2)
+            continue;
+
+        ++feature_index;
+
         if (it_per_id.used_num < 4)
             continue;
 
-        dep_vec(++feature_index) = 1. / it_per_id.estimated_depth;
+        dep_vec(feature_index) = 1. / it_per_id.estimated_depth;
 
     }
     return dep_vec;
@@ -228,10 +240,8 @@ int FeatureManager::getFeatureCount()
     {
         it.used_num = it.feature_per_frame.size();
 
-        if(it.used_num < 4)
-        {
+        if(it.start_frame >= WINDOW_SIZE-2)
             continue;
-        }
 
         cnt++;
     }
@@ -287,7 +297,8 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
     {
         FeaturePerFrame f_per_fra(id_pts.second[0].second, td);
 
-        //std::cout << "feature per frame: " << f_per_fra.pt.transpose() << std::endl;
+        // std::cout << "feature 2d normal: " << f_per_fra.pt.transpose() << std::endl;
+        // std::cout  << "feature 2d uv: " << f_per_fra.uv.transpose() << std::endl;
 
         if(id_pts.second.size()==2)
         {
@@ -318,9 +329,9 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
         }
     }
 
-    printf("long track num: %d\n", long_track_num);
-    printf("last track num: %d\n", last_track_num);
-    printf("new feature num: %d\n", new_feature_num);
+    //printf("long track num: %d\n", long_track_num);
+    //printf("last track num: %d\n", last_track_num);
+    //printf("new feature num: %d\n", new_feature_num);
 
     if(frame_count <2 || last_track_num <20 || long_track_num < 40 ||new_feature_num > 0.5 * last_track_num)
     {
@@ -345,8 +356,8 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
 
     }else
     {
-        printf("parallax_sum: %lf, parallax_num: %d \n", parallax_sum, parallax_num);
-        printf("current parallax: %lf \n",  parallax_sum / parallax_num);
+        //printf("parallax_sum: %lf, parallax_num: %d \n", parallax_sum, parallax_num);
+        //printf("current parallax: %lf \n",  parallax_sum / parallax_num);
 
         return parallax_sum / parallax_num >= FEATURE_THRESHOLD;
     }

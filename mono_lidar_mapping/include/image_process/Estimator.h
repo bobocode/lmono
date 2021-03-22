@@ -66,9 +66,49 @@
 #include "factor/PriorFactor.h"
 #include "laser_odometry/PointMapping.h"
 #include "visualizer/Visualizer.h"
-
+#include "parameter.h"
 
 using namespace lclio;
+
+class LoopFrame
+{
+    public:
+        virtual ~LoopFrame(){};
+        LoopFrame() = delete;
+        LoopFrame(sensor_msgs::PointCloudConstPtr &points_msg)
+        {
+            for(size_t i=0; i < points_msg->points.size(); i++)
+            {
+                Eigen::Vector3d normal_2d_id;
+                normal_2d_id.x() = points_msg->points[i].x;
+                normal_2d_id.y() = points_msg->points[i].y;
+                normal_2d_id.z() = points_msg->points[i].z;
+
+                // printf(RED"point id: %d, (%f, %f)\n" WHT, (int)points_msg->points[i].z, points_msg->points[i].x, points_msg->points[i].y);
+                // printf(RED"point id: %d, (%f, %f)\n" WHT, (int)normal_2d_id.z(), normal_2d_id.x(), normal_2d_id.y());
+                matched_points.push_back(normal_2d_id);
+            }
+
+            old_T = Eigen::Vector3d(points_msg->channels[0].values[0], points_msg->channels[0].values[1],points_msg->channels[0].values[2]);
+            old_Q = Eigen::Quaterniond(points_msg->channels[0].values[3],points_msg->channels[0].values[4],points_msg->channels[0].values[5],points_msg->channels[0].values[6]);
+
+            correct_T = Eigen::Vector3d(points_msg->channels[0].values[7],points_msg->channels[0].values[8],points_msg->channels[0].values[9]);
+            correct_Q = Eigen::Quaterniond(points_msg->channels[0].values[10],points_msg->channels[0].values[11],points_msg->channels[0].values[12],points_msg->channels[0].values[13]);
+            
+            ROS_WARN_STREAM("old T: " << old_T.transpose());
+            ROS_WARN_STREAM("correct T: " << correct_T.transpose());
+
+            loop_time_stamp = points_msg->header.stamp.toSec();
+            local_loop_index = -1;
+        }
+
+        Eigen::Quaterniond correct_Q, old_Q;
+        Eigen::Vector3d correct_T, old_T;
+        std::vector<Eigen::Vector3d> matched_points;
+        int local_loop_index;
+        double loop_time_stamp;
+};      
+
 
 class Estimator: public MeasurementManager, public PointMapping
 {
@@ -80,11 +120,14 @@ class Estimator: public MeasurementManager, public PointMapping
         void setupRos(ros::NodeHandle &nh);
         void inputImage(const double t, const cv::Mat &img0, const cv::Mat &img1 = cv::Mat());
         void processEstimation();
+        void loopCorrection();
         void processLaserOdom(const lclio::Transform &transform_in, const std_msgs::Header &header);
         Eigen::Matrix4d processCompactData(const sensor_msgs::PointCloud2ConstPtr &compact_data, const std_msgs::Header &header);
         void processImage(const double &header,const cv::Mat &img0,
                 Eigen::Matrix4d &transform_to_init, const cv::Mat &img1 = cv::Mat());
         cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg);
+        void measurementHandler();
+        void setLoopFrame();
         bool visoHandler(const cv::Mat &img0, Eigen::Matrix4d &pos, const cv::Mat &img1 = cv::Mat());
         bool readIntrinsicYml(const std::string& filename);
         void resetViso();
@@ -120,6 +163,7 @@ class Estimator: public MeasurementManager, public PointMapping
 //                           Transform &local_transform,
 //                           vector<unique_ptr<Feature>> &features);
 // #endif
+        void loopRefinement();
         bool optimization();
         void margin();
         void matrix2Double();
@@ -146,7 +190,11 @@ class Estimator: public MeasurementManager, public PointMapping
         };
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
+        
 
+        bool loop_closure;
+        bool first_refine;
+        int sum_of_measurement;
         int inputImageCnt;
         int frame_count;
         double cur_time;
@@ -156,6 +204,7 @@ class Estimator: public MeasurementManager, public PointMapping
         std::vector<camera_calib> cameras;
         std::vector<std::pair<double, ImageFrame>> all_image_frame;
         std::queue<pair<double, std::map<int, std::vector<std::pair<int, Eigen::Matrix<double, 6, 1>>>>>> featureBuf;
+        std::queue<PairMeasurement> measurement_buf;
 
         cv::Mat image_l,image_r;
         Eigen::Quaterniond L0_Q;
@@ -176,6 +225,21 @@ class Estimator: public MeasurementManager, public PointMapping
 
         CloudVisualizer cloud_vis;
 
+        //loop parameters
+        double last_skip_time;
+        int frame_index;
+        int sequence;
+        int skip_first_cnt;
+        bool load_flag;
+        bool start_flag;
+        int skip_cnt;
+        Eigen::Vector3d last_t;
+
+        double loop_time_stamp;
+        int loop_local_index;
+        std::vector<Eigen::Vector3d> loop_matched_points;
+        std::queue<LoopFrame> loop_buf;
+
     protected:
 
         Eigen::Matrix3d back_R0;
@@ -189,6 +253,7 @@ class Estimator: public MeasurementManager, public PointMapping
         double para_depth_inv[10000][1];
         double para_ex[1][7];
         double para_speed_bias[(WINDOW_SIZE+1)][9];
+        double para_loop_pose[7];
 
         lclio::Transform transform_tobe_mapped_bef_;
         lclio::Transform transform_es_;
@@ -206,8 +271,7 @@ class Estimator: public MeasurementManager, public PointMapping
         boost::shared_ptr<viso::VisualOdometryMono> mono_visual_odometer_;
         viso::VisualOdometryMono::parameters mono_visual_odometer_params_;
 
-        boost::shared_ptr<Visualizer> visualizer_;
-        
+        boost::shared_ptr<Visualizer> visualizer_;     
 
 };
 

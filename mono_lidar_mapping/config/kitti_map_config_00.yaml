@@ -1,0 +1,10 @@
+%YAML:1.0
+
+cam0_calib: "/home/bo/auto-calib/src/auto_calib/config/cam00.yaml"
+cam1_calib: "/home/bo/auto-calib/src/auto_calib/config/cam01.yaml"
+
+image_width: 1241
+image_height: 376
+
+
+

@@ -32,6 +32,17 @@
 using namespace std;
 static ros::NodeHandlePtr nh_ptr;
 
+std::mutex loop_mutex_;
+
+std::queue<sensor_msgs::PointCloudConstPtr> loop_buf;
+
+void loopHandler(const sensor_msgs::PointCloudConstPtr &point_msg)
+{
+    loop_mutex_.lock();
+    loop_buf.push(point_msg);
+    loop_mutex_.unlock();
+}
+
 void Run()
 {
     Estimator estimator;
@@ -45,26 +56,29 @@ void Run()
     odometry.Reset();
 
     thread odom(&PointOdometry::Spin, &odometry);
-    thread measurement_manager(&Estimator::processEstimation, &estimator);
+    thread measurement_manager(&Estimator::measurementHandler, &estimator);
+    thread loop_manager(&Estimator::setLoopFrame,&estimator);
+    //thread measurement_process(&Estimator::processEstimation, &estimator);
 
    // boost::thread visualizer(boost::bind(&CloudVisualizer::Spin, &(estimator.cloud_vis)));
-
-    ros::Rate r(1000);
-    while(ros::ok())
-    {
-        ros::spinOnce();
-        r.sleep();
-    }
+    
+    //std::thread loop_measurment{process};
+    ros::spin();
+    // ros::Rate r(1000);
+    // while(ros::ok())
+    // {
+    //     ros::spinOnce();
+    //     r.sleep();
+    // }
 
 }
 
 int main(int argc, char **argv)
 {
     ros::init(argc,argv,"auto_calib");
-    {
-        ros::NodeHandle nh("~");
-        nh_ptr = boost::make_shared<ros::NodeHandle>(nh);
-    }
+    
+    ros::NodeHandle nh("~");
+    nh_ptr = boost::make_shared<ros::NodeHandle>(nh);
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
 
     /*if(argc != 2)
@@ -79,7 +93,7 @@ int main(int argc, char **argv)
     printf("config_file: %s\n", argv[1]);*/
 
     Run();
-    ROS_WARN("waiting for images and lidar odom");
+    ROS_WARN("waiting for images and  compact");
     
 
     return 0;

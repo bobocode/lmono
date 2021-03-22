@@ -31,6 +31,7 @@ void DepthCompletion::depthCompletionFast(cv::Mat &depth_map)
 
     cv::dilate(hole_fill,dilate_mat,cv::getStructuringElement(cv::MORPH_RECT,cv::Size(7,7)));
 
+    //extend highest to the top of image
     cv::medianBlur(dilate_mat, tmp_mat,5);
     
     cv::Mat result;
@@ -43,9 +44,4 @@ void DepthCompletion::depthCompletionFast(cv::Mat &depth_map)
     }
 
     depth_map = result.clone();
-}
-
-void DepthCompletion::depthCompletionMultiScale(cv::Mat &depth_map)
-{
-
 }

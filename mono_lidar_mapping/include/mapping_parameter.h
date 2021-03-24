@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include <vector>
 #include <iostream>
-#include <fst
+#include <fstream>
 #include <string.h>
 #include <cstdlib>
 #include <cstdio>
@@ -29,10 +29,19 @@ extern Eigen::Vector3d tlc;
 extern Eigen::Matrix3d rlc;
 extern std::string CAM0;
 extern camodocal::CameraPtr m_camera;
+extern std::string IMAGE_TOPIC_0;
 
 extern ros::Publisher pub_depth_map_;
 extern ros::Publisher pub_rgb_points_;
 extern ros::Publisher pub_pro_img_;
+extern ros::Publisher pub_rgb_map_;
+
+extern int SAVE_MAP;
+extern double DELAY_TIME;
 extern int KERNEL_SIZE;
+extern double SKIP_DIS;
+extern int FILTER_SIZE;
+extern std::string KERNEL_TYPE;
+extern std::string BLUR_TYPE;
 
 #endif

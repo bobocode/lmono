@@ -143,6 +143,15 @@ set(loop_detection_EXT_LIBS
   ${monolio_EXT_LIBS}  
 )
 
+add_library(${PROJECT_NAME}-map-build
+  src/map_builder/Map_Builder.cc
+)
+
+set(map_build_EXT_LIBS
+  ${catkin_LIBRARIES}
+  ${monolio_EXT_LIBS}  
+)
+
 
 add_library(${PROJECT_NAME}-image-process
   src/image_process/CameraModel.cc
@@ -210,6 +219,20 @@ target_link_libraries(${PROJECT_NAME}_loop_detection_node
   ${loop_detection_EXT_LIBS}
   pthread
 )
+
+add_executable(${PROJECT_NAME}_map_build_node 
+    src/map_build_node.cc                             
+)
+
+add_dependencies(${PROJECT_NAME}_map_build_node
+  ${PROJECT_NAME}-map-build
+)
+target_link_libraries(${PROJECT_NAME}_map_build_node
+  ${PROJECT_NAME}-map-build
+  ${map_build_EXT_LIBS}
+  pthread
+)
+
 
 
 

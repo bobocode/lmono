@@ -223,8 +223,6 @@ class Estimator: public MeasurementManager, public PointMapping
         FeatureManager feature_manager;
         AXXBSolver axxbsolver;
 
-        CloudVisualizer cloud_vis;
-
         //loop parameters
         double last_skip_time;
         int frame_index;

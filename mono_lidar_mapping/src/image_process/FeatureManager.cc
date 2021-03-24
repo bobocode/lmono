@@ -29,7 +29,10 @@ FeatureManager::~FeatureManager(){}
 void FeatureManager::clearDepth()
 {
     for (auto &it_per_id : feature)
-        it_per_id.estimated_depth = -1;
+    {
+        it_per_id.solve_flag = 0;
+        it_per_id.estimated_depth = INIT_DEPTH;
+    }
 }
 
 void FeatureManager::setDepth(const Eigen::VectorXd &x)
@@ -38,18 +41,13 @@ void FeatureManager::setDepth(const Eigen::VectorXd &x)
     for (auto &it_per_id : feature)
     {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
-
-        if(it_per_id.start_frame >= WINDOW_SIZE-2)
-            continue;
         
-        ++feature_index;
-
         if (it_per_id.used_num < 4)
             continue;
 
-        it_per_id.estimated_depth = 1.0 / x(feature_index);
+        it_per_id.estimated_depth = 1.0 / x(++feature_index);
         //ROS_INFO("feature id %d , start_frame %d, depth %f ", it_per_id->feature_id, it_per_id-> start_frame, it_per_id->estimated_depth);
-        if (it_per_id.estimated_depth < 0)
+        if (it_per_id.estimated_depth < 0.1)
         {
             it_per_id.solve_flag = 2;
         }
@@ -65,17 +63,11 @@ Eigen::VectorXd FeatureManager::getDepthVector()
     for (auto &it_per_id : feature)
     {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
-
-        if(it_per_id.start_frame >= WINDOW_SIZE-2)
-            continue;
-
-        ++feature_index;
-
+    
         if (it_per_id.used_num < 4)
             continue;
 
-        dep_vec(feature_index) = 1. / it_per_id.estimated_depth;
-
+        dep_vec(++feature_index) = 1. / it_per_id.estimated_depth;
     }
     return dep_vec;
 }
@@ -92,7 +84,7 @@ void FeatureManager::triangulate(int frameCnt,  Eigen::Matrix3d Rs[], Eigen::Vec
             continue;
         }
  
-        if(it_per_id.feature_per_frame.size() >1)
+        /*if(it_per_id.feature_per_frame.size() >1)
         {
             int i = it_per_id.start_frame;
             Eigen::Matrix<double, 3, 4> pose0;
@@ -117,7 +109,6 @@ void FeatureManager::triangulate(int frameCnt,  Eigen::Matrix3d Rs[], Eigen::Vec
             point0 = it_per_id.feature_per_frame[0].pt;
             point1 = it_per_id.feature_per_frame[1].pt;
 
-
             triangulatePoint(pose0, pose1, point0, point1, point3d);
             Eigen::Vector3d localPoint;
             localPoint = pose0.leftCols<3>() * point3d + pose0.rightCols<1>();
@@ -125,18 +116,17 @@ void FeatureManager::triangulate(int frameCnt,  Eigen::Matrix3d Rs[], Eigen::Vec
             //printf("stereo feature %d depth: %f\n", it_per_id.feature_id, it_per_id.estimated_depth);
             //printf("two frame feature %d depth: %f\n", it_per_id.feature_id, localPoint.z());
 
-            if(localPoint.z() > 0.2)
+            if(localPoint.z() > 0)
             {
                 it_per_id.estimated_depth = localPoint.z();
                 continue;
 
             }else
             {
-                it_per_id.estimated_depth = -1;
+                it_per_id.estimated_depth = INIT_DEPTH;
             }
-            
 
-        }
+        }*/
 
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if(it_per_id.used_num <4)
@@ -176,7 +166,6 @@ void FeatureManager::triangulate(int frameCnt,  Eigen::Matrix3d Rs[], Eigen::Vec
 
             if (i == j)
                 continue;
-
         }
 
         if(svd_idx !=svd_A.rows())
@@ -194,14 +183,13 @@ void FeatureManager::triangulate(int frameCnt,  Eigen::Matrix3d Rs[], Eigen::Vec
         //printf("stereo feature %d depth: %f\n", it_per_id.feature_id, it_per_id.estimated_depth);
         //printf("Multi frames feature %d depth: %f\n", it_per_id.feature_id, localPoint.z());
 
-        if(localPoint.z() < 0.2)
+        if(localPoint.z() < 0.1)
         {
-            it_per_id.estimated_depth = -1;
+            it_per_id.estimated_depth = INIT_DEPTH;
 
         }else{
             
             it_per_id.estimated_depth = localPoint.z();
-            continue;
         }
 
         // if(it_per_id.feature_per_frame[0].stereo)
@@ -235,18 +223,18 @@ void FeatureManager::clearState()
 
 int FeatureManager::getFeatureCount()
 {
-    int cnt=0;
+    int cnt=-1;
     for(auto &it: feature)
     {
         it.used_num = it.feature_per_frame.size();
 
-        if(it.start_frame >= WINDOW_SIZE-2)
+        if (it.used_num < 4)
             continue;
 
-        cnt++;
+        ++cnt;
     }
 
-    return cnt;
+    return cnt+1;
 
 }
 
@@ -311,12 +299,14 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
             return it.feature_id == feature_id;
         });
 
+        m.lock();
         if(it==feature.end())
         {
             feature.push_back(FeaturePerId(feature_id, frame_count));
             feature.back().feature_per_frame.push_back(f_per_fra);
             feature.back().start_frame = frame_count;
             new_feature_num++;
+
         }else if(it->feature_id == feature_id)
         {
             it->feature_per_frame.push_back(f_per_fra);
@@ -327,6 +317,7 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
                 long_track_num++;
             }
         }
+        m.unlock();
     }
 
     //printf("long track num: %d\n", long_track_num);
@@ -540,9 +531,12 @@ void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3
                 //printf("depth at marg frame: %f\n", it->estimated_depth);
                 //printf("depth after marg %f\n", dep_j);
                 if (dep_j > 0)
+                {
                     it->estimated_depth = dep_j;
-                else
-                    it->estimated_depth = -1;
+                }else
+                {
+                    it->estimated_depth = INIT_DEPTH;
+                }
                 
             }
         }

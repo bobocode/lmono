@@ -1,10 +1,14 @@
 %YAML:1.0
 
-cam0_calib: "/home/bo/auto-calib/src/auto_calib/config/cam00.yaml"
-cam1_calib: "/home/bo/auto-calib/src/auto_calib/config/cam01.yaml"
+cam0_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam00.yaml"
+cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam01.yaml"
 
 image_width: 1241
 image_height: 376
-
-
-
+image0_topic: "/image_left"
+skip_dis: 0
+filter_size: 11
+kernel_type: FULL
+blur_type: guassian  #or  bilateral 
+kernel_size: 5
+save_map: 1

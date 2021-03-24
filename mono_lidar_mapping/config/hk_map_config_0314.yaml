@@ -1,0 +1,16 @@
+%YAML:1.0
+
+cam0_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/hk_cam00.yaml"
+cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/hk_cam01.yaml"
+
+image_width: 1920
+image_height: 1200
+image0_topic: "/camera/image_color"
+skip_dis: 0
+filter_size: 11
+kernel_type: CROSS
+blur_type: bilateral  #or guassian
+kernel_size: 5
+delay_time: 0.1
+save_map: 0
+

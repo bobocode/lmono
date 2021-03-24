@@ -2,7 +2,7 @@
 
 #image0_topic: "/cam00/image_raw"
 #image1_topic: "/cam01/image_raw"
-image0_topic: "/image_left"
+image0_topic: "/camera/image_color"
 image1_topic: "/image_right"
 #laser_odometry_topic: "/aft_mapped_to_init_high_frec"
 laser_odometry_topic: "/aft_mapped_to_init"
@@ -11,22 +11,22 @@ imu_topic: "/imu/data"
 use_imu: 0
 estimate_imu: 2
 estimate_laser: 1
-delay_time: 0.003
-
 laser_to_camera0: !!opencv-matrix
    rows: 4
    cols: 4
    dt: d
-   data: [0.0519712,  0.0758698,   0.995762, 0,
-      -0.997109,  0.0592834,  0.0475246,  0,
-      -0.0554265,  -0.995354,  0.0787315, 0,
-     0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]
+   data: [0.990767,  0.0216844, -0.133829,0,
+      0.133967, -0.00504594, 0.990973,  0,
+      0.0208134, -0.999752, -0.00790434, 0,
+     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
 
-cam0_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam00.yaml"
-cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam01.yaml"
+delay_time: 0.1
 
-image_width: 1241
-image_height: 376
+cam0_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/hk_cam00.yaml"
+cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/hk_cam00.yaml"
+
+image_width: 1920
+image_height: 1200
 
 prior_t: 1000
 prior_r: 1000

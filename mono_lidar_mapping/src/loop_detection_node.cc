@@ -51,7 +51,7 @@ int frame_index = 0;
 int sequence =0;
 
 camodocal::CameraPtr m_camera;
-
+std::string IMAGE_TOPIC_0;
 std::string CAM0;
 int DEBUG_IMAGE;
 int ROW;
@@ -310,8 +310,10 @@ int main(int argc, char **argv)
 
         fsSettings["image_height"] >> ROW;
         fsSettings["image_width"] >> COL;
-
+        fsSettings["image0_topic"] >> IMAGE_TOPIC_0;
+        std::cout << "image0 topic: " << IMAGE_TOPIC_0 << std::endl;
         fsSettings["cam0_calib"] >> CAM0;
+        std::cout << "cam0 calib: " << CAM0 << std::endl;
 
         fsSettings["skip_dis"] >> SKIP_DIS;
         fsSettings["skip_cnt"] >> SKIP_CNT;
@@ -333,7 +335,7 @@ int main(int argc, char **argv)
 
     ros::Subscriber sub_extrinsic_ = nh.subscribe("/fused/extrinsic",2000,extrinsicHandler);
     ros::Subscriber sub_feature_points_ = nh.subscribe("/fused/keyframe_point",2000,pointmsgHandler);
-    ros::Subscriber sub_image_ = nh.subscribe("/image_left",2000, imageHandler);
+    ros::Subscriber sub_image_ = nh.subscribe(IMAGE_TOPIC_0,2000, imageHandler);
     ros::Subscriber sub_odom_ = nh.subscribe("/fused/new_odometry",2000, odomHandler);
 
     pub_matched_points_ =  nh.advertise<sensor_msgs::PointCloud>("matched_points",1000);

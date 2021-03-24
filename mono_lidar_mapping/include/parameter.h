@@ -60,6 +60,9 @@ extern std::string IMU_TOPIC;
 extern std::vector<std::string> CAM_NAMES;
 extern Eigen::Matrix4d CAM0_T_CAM1;
 extern Eigen::Matrix4d IMU_TO_CAM0;
+extern Eigen::Matrix4d LASER_TO_CAM0;
+
+extern double DELAY_TIME;
 
 extern int OPEN_VISO;
 extern int STEREO;
@@ -88,6 +91,7 @@ extern double FILTER_SIZE;
 extern std::string KERNEL_TYPE;
 extern std::string BLUR_TYPE;
 extern int KERNEL_SIZE;
+extern double INIT_DEPTH;
 
 //loop
 extern int SKIP_CNT;

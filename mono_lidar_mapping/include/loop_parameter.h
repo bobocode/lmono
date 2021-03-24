@@ -46,6 +46,7 @@ extern std::string CAM0;
 extern Eigen::Vector3d tlc;
 extern Eigen::Matrix3d qlc;
 extern camodocal::CameraPtr m_camera;
+extern std::string IMAGE_TOPIC_0;
 
 extern ros::Publisher pub_correct_odom_;
 extern ros::Publisher pub_matched_points_;

@@ -22,6 +22,7 @@ std::string IMAGE0_TOPIC, IMAGE1_TOPIC;
 std::string LASER_ODOM_TOPIC;
 std::string POINTS_TOPIC;
 std::string IMU_TOPIC;
+double DELAY_TIME;
 
 std::vector<std::string> CAM_NAMES;
 int OPEN_VISO;
@@ -42,6 +43,7 @@ double G_NORM;
 Eigen::Vector3d G{0.0, 0.0, 9.8};
 Eigen::Matrix4d CAM0_T_CAM1;
 Eigen::Matrix4d IMU_TO_CAM0;
+Eigen::Matrix4d LASER_TO_CAM0;
 double FACTOR_WEIGHT;
 double PRIOR_T;
 double PRIOR_R;
@@ -63,6 +65,7 @@ int ROW;
 int COL;
 int MIN_PNP_LOOP_NUM;
 int MIN_BRIEF_LOOP_NUM;
+double INIT_DEPTH;
 
 void readParameters(ros::NodeHandle &n)
 {
@@ -87,18 +90,17 @@ void readParameters(ros::NodeHandle &n)
     fsSettings["laser_odometry_topic"] >> LASER_ODOM_TOPIC;
     fsSettings["laser_topic"] >> POINTS_TOPIC;
     fsSettings["imu_topic"] >> IMU_TOPIC;
+    fsSettings["delay_time"] >> DELAY_TIME;
     
     std::cout << "image0 topic: " << IMAGE0_TOPIC << std::endl;
     std::cout << "image1 topic: " << IMAGE1_TOPIC << std::endl;
     
     std::string cam0Calib;
     fsSettings["cam0_calib"] >> cam0Calib;
-
     std::cout << "cam0 calib: " << cam0Calib << std::endl;
 
     std::string cam1Calib;
     fsSettings["cam1_calib"] >> cam1Calib;
-
     std::cout << "cam1 calib: " << cam1Calib << std::endl;
 
     ROW = fsSettings["image_height"];
@@ -143,10 +145,21 @@ void readParameters(ros::NodeHandle &n)
     G.z() = G_NORM;
     //fsSettings["window_size"] >> WINDOW_SIZE;
 
-    cv::Mat cv_T;
-    fsSettings["cam0_T_cam1"] >> cv_T;
-    cv::cv2eigen(cv_T, CAM0_T_CAM1);
+    INIT_DEPTH = -1.0;
 
+    cv::Mat cv_cam0_T_cam1;
+    fsSettings["cam0_T_cam1"] >> cv_cam0_T_cam1;
+    cv::cv2eigen(cv_cam0_T_cam1, CAM0_T_CAM1);
+
+    if(ESTIMATE_LASER != 2)
+    {
+        cv::Mat cv_laser_T_cam0;
+        fsSettings["laser_to_camera0"] >> cv_laser_T_cam0;
+        cv::cv2eigen(cv_laser_T_cam0, LASER_TO_CAM0);
+
+        std::cout << "laser to cam0: \n" << LASER_TO_CAM0.matrix() << std::endl;
+    }
+    
     BRIEF_PATTERN_FILE = "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/support_files/brief_pattern.yml";
 
     std::cout << "cam0 to cam1: \n" << CAM0_T_CAM1.matrix() << std::endl;

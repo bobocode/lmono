@@ -65,7 +65,7 @@ double AXXBSolver::testTriangulation(const vector<cv::Point2f> &l,
         if (p_3d_l(2) > 0 && p_3d_r(2) > 0)
             front_count++;
     }
-    printf("MotionEstimator: %f", 1.0 * front_count / pointcloud.cols);
+    printf("MotionEstimator: %f\n", 1.0 * front_count / pointcloud.cols);
     return 1.0 * front_count / pointcloud.cols;
 }
 

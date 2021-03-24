@@ -109,18 +109,9 @@ bool MonoProjectionFactor::Evaluate(double const *const *parameters, double *res
 //     reduce << 1. /dep_cj, 0, -pts_cj(0) / (dep_cj * dep_cj),
 //             0, 1. /dep_cj, -pts_cj(1) /(dep_cj * dep_cj);
 // #endif
-    double norm = pts_cj.norm();
-    Eigen::Matrix3d norm_jaco;
-    double x1, x2, x3;
-    x1 = pts_cj(0);
-    x2 = pts_cj(1);
-    x3 = pts_cj(2);
-    norm_jaco << 1.0 / norm - x1 * x1 / pow(norm, 3), - x1 * x2 / pow(norm, 3),            - x1 * x3 / pow(norm, 3),
-                    - x1 * x2 / pow(norm, 3),            1.0 / norm - x2 * x2 / pow(norm, 3), - x2 * x3 / pow(norm, 3),
-                    - x1 * x3 / pow(norm, 3),            - x2 * x3 / pow(norm, 3),            1.0 / norm - x3 * x3 / pow(norm, 3);
-    reduce = tangent_base * norm_jaco;
+    reduce << 1. /dep_cj, 0, -pts_cj(0) / (dep_cj * dep_cj),
+             0, 1. /dep_cj, -pts_cj(1) /(dep_cj * dep_cj);
     
-
     reduce = sqrt_info * reduce;
 
     if(jacobians)

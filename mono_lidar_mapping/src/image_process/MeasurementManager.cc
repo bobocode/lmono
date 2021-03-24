@@ -34,22 +34,30 @@ PairMeasurements MeasurementManager::GetMeasurements()
             return measurements;
         }
 
-        if(img0_buf.front()->header.stamp.toSec() < compact_data_buf.front()->header.stamp.toSec() - 0.003)
+        if(img0_buf.front()->header.stamp.toSec() < compact_data_buf.front()->header.stamp.toSec() - DELAY_TIME)
         {
+            double delta_t_ = compact_data_buf.front()->header.stamp.toSec() - img0_buf.front()->header.stamp.toSec();
+            printf("throwing image %f, %f\n", img0_buf.front()->header.stamp.toNSec(), delta_t_);
+
             img0_buf.pop();
-        }else if(img0_buf.front()->header.stamp.toSec() > compact_data_buf.front()->header.stamp.toSec() + 0.003)
+        }else if(img0_buf.front()->header.stamp.toSec() > compact_data_buf.front()->header.stamp.toSec() + DELAY_TIME)
         {
+            double delta_t_ = img0_buf.front()->header.stamp.toSec() - compact_data_buf.front()->header.stamp.toSec();
+            printf("throwing compact date %f, %f\n", compact_data_buf.front()->header.stamp.toNSec(),delta_t_);
             compact_data_buf.pop();
         }else
         {
-             sensor_msgs::PointCloud2ConstPtr compact_data_msg = compact_data_buf.front();
+            sensor_msgs::PointCloud2ConstPtr compact_data_msg = compact_data_buf.front();
             compact_data_buf.pop();
 
             sensor_msgs::ImageConstPtr img_msg = img0_buf.front();
             img0_buf.pop();
 
-            //ROS_INFO_STREAM("mearure img with stamp " << img_msg->header.stamp.toSec());
-            //ROS_INFO_STREAM("measure laser with stamp " << compact_data_msg->header.stamp.toSec());
+            // printf("measure img with stamp %f\n", img_msg->header.stamp.toNSec());
+            // printf("measure laser with stamp %f\n", compact_data_msg->header.stamp.toNSec());
+
+            ROS_INFO_STREAM("mearure img with stamp " << img_msg->header.stamp.toNSec());
+            ROS_INFO_STREAM("measure laser with stamp " << compact_data_msg->header.stamp.toNSec());
 
             measurements.emplace_back(img_msg, compact_data_msg);
             return measurements;
@@ -121,7 +129,7 @@ void MeasurementManager::PointCloudHandler(const sensor_msgs::PointCloud2ConstPt
 void MeasurementManager::CompactDatahandler(const sensor_msgs::PointCloud2ConstPtr &compact_data_msg)
 {
     compact_buf_mutex_.lock();
-    //ROS_INFO_STREAM("receiving pts data " << compact_data_msg->header.stamp.toSec());
+    ROS_INFO_STREAM("receiving pts data " << compact_data_msg->header.stamp.toNSec());
     compact_data_buf.push(compact_data_msg);
     compact_buf_mutex_.unlock();
     con_.notify_one();
@@ -131,7 +139,7 @@ void MeasurementManager::ImageHandler(const sensor_msgs::ImageConstPtr &img0_msg
 {
     //printf("receiving img msg\n");
     img_buf_mutex_.lock();
-    //ROS_INFO_STREAM("receiving img msg " << img0_msg->header.stamp.toSec());
+    ROS_INFO_STREAM("receiving img msg " << img0_msg->header.stamp.toNSec());
     img0_buf.push(img0_msg);
     img_buf_mutex_.unlock();
     con_.notify_one();

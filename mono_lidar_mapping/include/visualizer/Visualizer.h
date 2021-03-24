@@ -52,6 +52,7 @@ class Visualizer
         void pubNewCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_cloud, double t);
         void pubOriginalOdom(const Eigen::Vector3d &P, const Eigen::Quaterniond &Q, double t);
         void pubNewOdom(const Eigen::Vector3d &P, const Eigen::Quaterniond &Q, double t);
+        void pubCamNewOdom(const Eigen::Vector3d &P, const Eigen::Quaterniond &Q, double t);
         void pubExtrinsic(const Eigen::Vector3d &P, const Eigen::Matrix3d &R, double t);
         void pubKeyframePoints(const sensor_msgs::PointCloud &point_cloud);
 
@@ -62,23 +63,11 @@ class Visualizer
         DepthCompletion depth_map_util;
         camodocal::CameraPtr cam_;
         ros::NodeHandle nh_;
-        ros::Publisher pub_original_odom_, pub_new_odom_;
+        ros::Publisher pub_original_odom_, pub_new_odom_, pub_new_camera_odom_;
         ros::Publisher pub_projection_, pub_depth_map_, pub_img_track_;
         ros::Publisher pub_rgb_cloud_;
         ros::Publisher pub_extrinsic_;
         ros::Publisher pub_keyframe_point_;
-};
-
-class CloudVisualizer{
-    public:
-        CloudVisualizer();
-        void updateCloud(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud);
-        void Spin();
-
-        boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
-        boost::mutex m;
-        bool init;
-
 };
 
 #endif

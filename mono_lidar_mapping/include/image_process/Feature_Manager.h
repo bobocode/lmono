@@ -25,7 +25,7 @@ Adapted from VINS-Mono
 #include <algorithm>
 #include <map>
 #include <utility>
-
+#include <mutex>
 #include <ceres/ceres.h>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Core>
@@ -123,8 +123,9 @@ class FeaturePerId
         FeaturePerId() = delete;
         FeaturePerId(int _feature_id, int _start_frame)
         : feature_id(_feature_id), start_frame(_start_frame),
-        estimated_3d(Eigen::Vector3d(0,0,0)), estimated_depth(-1.0),  used_num(0), solve_flag(0), state(false)
+        estimated_3d(Eigen::Vector3d(0,0,0)),used_num(0), solve_flag(0), state(false)
         {
+            estimated_depth = INIT_DEPTH;
         }
 
         int endFrame();
@@ -164,6 +165,8 @@ class FeatureManager
         int new_feature_num;
         int last_track_num;
         int long_track_num;
+
+        std::mutex m;
 
 };
 

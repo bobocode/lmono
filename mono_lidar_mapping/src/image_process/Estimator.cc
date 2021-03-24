@@ -96,24 +96,11 @@ void Estimator::setParameter()
     last_marginalization_parameter_blocks.clear();
 
     feature_manager.clearState();
-    
-    Eigen::Matrix3d rot;
-    rot << 4.27682532e-04, -7.21067536e-03,  9.99973911e-01,
-    -9.99967229e-01,  8.08118081e-03,  4.85951966e-04,
-    -8.08447402e-03, -9.99941349e-01, -7.20698288e-03;
 
-    // rot <<   0.0519712,  0.0758698,   0.995762,
-    //     -0.997109,  0.0592834,  0.0475246,
-    //     -0.0554265,  -0.995354,  0.0787315;
-
-    // Eigen::Matrix3d rot;
-    // rot <<  -0.0648221, -0.00140819,  0.997896,
-    //         -0.997858,  0.00895319,  -0.064807,
-    //         -0.00884309,  -0.999959, -0.00198554;
-    
-    TLC[0].block<3,3>(0,0) = rot;
-    TLC[0].block<3,1>(0,3) = Eigen::Vector3d(0.28877894, -0.0554166,  0.04542653);
-    ESTIMATE_LASER = 1;
+    if(ESTIMATE_LASER !=2)
+    {
+        TLC[0] = LASER_TO_CAM0;
+    }
 
     MonoProjectionFactor::sqrt_info = FACTOR_WEIGHT * Eigen::Matrix2d::Identity();
     LASERFactor::sqrt_info = LASER_W * FACTOR_WEIGHT * Eigen::Matrix<double,6,6>::Identity();
@@ -171,14 +158,12 @@ void Estimator::outliersRejection(std::set<int> &removeIndex, const double &erro
             continue;
         }
 
-        feature_index++;
+        ++feature_index;
 
         if(it_per_id.used_num < 4)
         {
             continue;
         }
-
-        
 
         int i = it_per_id.start_frame, j = i -1;
 
@@ -200,26 +185,6 @@ void Estimator::outliersRejection(std::set<int> &removeIndex, const double &erro
                 errCnt++;
             }
 
-            // if(it_per_frame.stereo)
-            // {
-            //     Eigen::Vector2d pt_j_right = it_per_frame.right_pt;
-
-            //     if(i !=j)
-            //     {   
-            //        //printf("stereo two frames: \n");
-            //         double tmp_error = reprojectionError(Rs[i], Ps[i],Rs[j], Ps[j], pt_i, pt_j_right, depth,rlc[0],CAM0_T_CAM1);
-            //         err += tmp_error;
-            //         errCnt++;
-            //     }else
-            //     {
-            //         //printf("stereo one frame: \n");
-            //         double tmp_error = reprojectionError(Rs[i], Ps[i],Rs[j], Ps[j],pt_i, pt_j_right,depth, rlc[0],CAM0_T_CAM1);
-            //         err += tmp_error;
-            //         errCnt++;
-            //     }
-                
-            // }
-            
         }
 
         double ave_err = err / errCnt;
@@ -414,8 +379,6 @@ void Estimator::loopCorrection()
 
             ROS_WARN_STREAM("old loop t: " << loop_frame->old_T.transpose());
             loop_matched_points = loop_frame->matched_points;
-
-            feature_manager.clearDepth();
         }
     }
 }
@@ -567,6 +530,12 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
     }else
     {
         loopCorrection();
+        // Eigen::VectorXd dep = feature_manager.getDepthVector();
+        // for(int i =0; i < feature_manager.getFeatureCount(); i++)
+        // {
+        //     printf("before triangulation feature %d depth: %f\n",i,1.0/dep(i));
+        // }
+
         feature_manager.triangulate(frame_count, Rs, Ps, TLC[0]);
         std::set<int> removeIndex;
         //outliersRejection(removeIndex,100.0);
@@ -575,12 +544,15 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
         tic_toc_.Tic();
         optimization();
         ROS_INFO_STREAM("prediction time: " << tic_toc_.Toc());
-        //check();
-        //ROS_WARN_STREAM("removing outliers");
-        outliersRejection(removeIndex,5);
+        outliersRejection(removeIndex,10);
         feature_manager.removeOutlier(removeIndex);
         slideWindow();
-        feature_manager.removeFailures();
+
+        // Eigen::VectorXd dep = feature_manager.getDepthVector();
+        // for(int i =0; i < feature_manager.getFeatureCount(); i++)
+        // {
+        //     printf("after sliding window feature %d depth: %f\n",i,1.0/dep(i));
+        // }
     }
 
     prev_time = header;
@@ -609,7 +581,9 @@ void Estimator::measurementHandler()
         processEstimation();
         thread_mutex_.unlock();
     }
+    thread_mutex_.lock();
     processEstimation();
+    thread_mutex_.unlock();
 }
 
 void Estimator::processEstimation()
@@ -620,31 +594,19 @@ void Estimator::processEstimation()
         measurement_buf.pop();
 
         sensor_msgs::PointCloud2ConstPtr pts_msg = mm.second;
-        ROS_INFO_STREAM("processing laser data with stamp " << pts_msg->header.stamp.toSec());
+        ROS_INFO_STREAM("processing laser data with stamp " << pts_msg->header.stamp.toNSec());
         L0_Pos = this->processCompactData(pts_msg, pts_msg->header);
 
         sensor_msgs::ImageConstPtr img0_msg = mm.first;
         
         image_l = getImageFromMsg(img0_msg);
-        ROS_INFO_STREAM("processing image dara with stamp " << img0_msg->header.stamp.toSec());
+        ROS_INFO_STREAM("processing image dara with stamp " << img0_msg->header.stamp.toNSec());
         
         //ROS_INFO_STREAM("showing the picture");
-        //cv::imshow("imshow", image_l);
+        // cv::imshow("imshow", image_l);
+        // cv::waitKey(2);
 
         processImage(img0_msg->header.stamp.toSec(), image_l, L0_Pos, cv::Mat());
-
-        // if(ESTIMATE_LASER !=2 && stage_flag == INITED)
-        // {
-        //     pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-        //     pcl::fromROSMsg(*pts_msg, *tmp_cloud);
-        //     //ROS_INFO_STREAM("transform pts to camera frame");
-        //     pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmp_rgb_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-        //     tic_toc_.Tic();
-        //     visualizer_->pubProjection(TLC[0].inverse(), *tmp_cloud, image_l,tmp_rgb_cloud,img0_msg->header.stamp.toSec());
-        //     ROS_INFO_STREAM("Map time: " << tic_toc_.Toc());
-        //     
-        //     //cloud_vis.updateCloud(tmp_rgb_cloud);
-        // }
 
         //build keyframe
         if(stage_flag == INITED)
@@ -652,16 +614,20 @@ void Estimator::processEstimation()
             tlc = TLC[0].block<3,1>(0,3);
             qlc = TLC[0].block<3,3>(0,0);
 
-            visualizer_->pubNewOdom(Ps[WINDOW_SIZE-1],Eigen::Quaterniond(Rs[WINDOW_SIZE-1]),Header[WINDOW_SIZE-1]);
-            visualizer_->pubExtrinsic(tlc, qlc, Header[WINDOW_SIZE-1]);
+            Eigen::Vector3d cam_p = Rs[0] * tlc + Ps[0];
+            Eigen::Matrix3d cam_r = Rs[0] * qlc;
+
+            visualizer_->pubCamNewOdom(cam_p, Eigen::Quaterniond(cam_r), Header[WINDOW_SIZE-2]);
+            visualizer_->pubNewOdom(Ps[WINDOW_SIZE-2],Eigen::Quaterniond(Rs[WINDOW_SIZE-2]),Header[WINDOW_SIZE-2]);
+            visualizer_->pubExtrinsic(tlc, qlc, Header[0]);
 
             sensor_msgs::PointCloud point_cloud;
-            point_cloud.header.stamp = ros::Time(Header[WINDOW_SIZE-1]);
+            point_cloud.header.stamp = ros::Time(Header[WINDOW_SIZE-2]);
             for(auto &it_per_id: feature_manager.feature)
             {
                 int frame_size = it_per_id.feature_per_frame.size();
 
-                if(it_per_id.start_frame < WINDOW_SIZE -2 && it_per_id.start_frame +frame_size-1 >= WINDOW_SIZE-1 && it_per_id.solve_flag ==1)
+                if(it_per_id.start_frame < WINDOW_SIZE-2 && it_per_id.start_frame +frame_size-1 >= WINDOW_SIZE-2 && it_per_id.solve_flag ==1)
                 {
                     int i = it_per_id.start_frame;
 
@@ -800,6 +766,7 @@ void Estimator::slideWindow()
 
             slideWindowOld();
         }
+
     }else
     {
         printf("margin the second new frame\n");
@@ -832,6 +799,9 @@ void Estimator::slideWindowOld()
 
         P0 = back_P0 + back_R0 * TLC[0].block<3,1>(0,3);
         P1 = Ps[0] + Rs[0] * TLC[0].block<3,1>(0,3);
+
+        //ROS_WARN_STREAM("marg t: " << back_P0.transpose());
+        //ROS_WARN_STREAM("new t: " << Ps[0].transpose());
 
         feature_manager.removeBackShiftDepth(R0, P0, R1, P1);
     }
@@ -1044,9 +1014,8 @@ bool Estimator::runInitialization()
     double s = x(3);
 
     Eigen::Matrix3d rlc = TLC[0].block<3,3>(0,0);
-    Eigen::Vector3d tlc = x.segment<3>(0);//TLC[0].block<3,1>(0,3);
-    //TLC[0].block<3,1>(0,3) = tlc;
-    tlc.setZero();
+    Eigen::Vector3d tlc = TLC[0].block<3,1>(0,3);
+    //tlc.setZero();
 
     Eigen::Matrix3d cam_R0 = all_image_frame[0].second.R;
     Eigen::Vector3d cam_P0 = all_image_frame[0].second.T;
@@ -1060,7 +1029,7 @@ bool Estimator::runInitialization()
         // Rs[i] = cam_Ri * rlc.transpose();
         // Ps[i] = s * cam_Pi - Rs[i] * tlc - (s * cam_P0 - cam_R0 * rlc.transpose() * tlc);
 
-        all_image_frame[i].second.T = s * cam_Pi;
+        //all_image_frame[i].second.T = s * cam_Pi;
 
         Eigen::Matrix3d L0_Ri = all_image_frame[i].second.L0_R;
         Eigen::Vector3d L0_Pi = all_image_frame[i].second.L0_T;
@@ -1121,10 +1090,9 @@ void Estimator::matrix2Double()
     para_ex[0][6] = q_ex1.w();
 
     Eigen::VectorXd dep = feature_manager.getDepthVector();
-
     for(int i =0; i < feature_manager.getFeatureCount(); i++)
     {
-        //printf("feature %d depth: %f\n",i,1.0/dep(i));
+        //printf("before optimization feature %d depth: %f\n",i,1.0/dep(i));
         para_depth_inv[i][0] = dep(i);
     }
     std::cout << "feature size: " << dep.size() << std::endl;
@@ -1141,9 +1109,7 @@ void Estimator::double2Matrix()
     double roll_diff = origin_R0.z() - origin_R00.z();
 
     Eigen::Matrix3d rot_diff = mathutils::ypr2R(Eigen::Vector3d(0, 0, 0));
-    //Eigen::Matrix3d rot_diff = Rs[0].transpose() * Eigen::Quaterniond(para_pose[0][6], para_pose[0][3], para_pose[0][4], para_pose[0][5]).toRotationMatrix();
 
-    //ROS_DEBUG("euler singular point!");
     rot_diff = Rs[0] * Eigen::Quaterniond(para_pose[0][6],
                                     para_pose[0][3],
                                     para_pose[0][4],
@@ -1156,59 +1122,20 @@ void Estimator::double2Matrix()
         Eigen::Vector3d t_i(para_pose[i][0]-para_pose[0][0], para_pose[i][1]-para_pose[0][1], para_pose[i][2]-para_pose[0][2]);
         Eigen::Quaterniond q_i(para_pose[i][6], para_pose[i][3], para_pose[i][4], para_pose[i][5]);
 
-        //laser_pose[i].block<3,1>(0,3) =  rot_diff * t_i + origin_t0;
-        //laser_pose[i].block<3,3>(0,0) =  rot_diff * q_i.normalized().toRotationMatrix();
-
         //ROS_INFO_STREAM("Ps[" << i << "] before: " << (Ps[i]).transpose());
         Ps[i] =  rot_diff * t_i + origin_t0;
         Rs[i] =  rot_diff * q_i.normalized().toRotationMatrix();
         //ROS_INFO_STREAM("Ps[" << i << "] after: " << Ps[i].transpose());
     }
 
-    if(stage_flag == INITED)
-    {
-        lclio::Transform trans_prev(Eigen::Quaterniond(Rs[WINDOW_SIZE-1]).cast<float>(),
-                                        Ps[WINDOW_SIZE-1].cast<float>());
-        lclio::Transform trans_curr(Eigen::Quaterniond(Rs[WINDOW_SIZE]).cast<float>(),
-                                        Ps[WINDOW_SIZE].cast<float>());
+    
+    Eigen::Vector3d t_ex1(para_ex[0][0], para_ex[0][1], para_ex[0][2]);
+    Eigen::Quaterniond q_ex1(para_ex[0][6], para_ex[0][3], para_ex[0][4], para_ex[0][5]);
 
-        lclio::Transform d_trans = trans_prev.inverse() * trans_curr;
-
-        //ROS_INFO_STREAM("incre in laser world pos" << d_trans.pos.transpose());
-        //ROS_INFO_STREAM("incre in laser world rot" << d_trans.rot.toRotationMatrix());
-    }
-
-    {
-        Eigen::Vector3d t_ex1(para_ex[0][0], para_ex[0][1], para_ex[0][2]);
-        Eigen::Quaterniond q_ex1(para_ex[0][6], para_ex[0][3], para_ex[0][4], para_ex[0][5]);
-
-        transform_lc_.pos = t_ex1.cast<float>();
-        transform_lc_.rot = q_ex1.cast<float>();
-
-        // fprintf(extrinsic, "%d,%f,%f,%f , %f, %f, %f, %f \n", inputImageCnt,t_ex1.x() ,t_ex1.y(),t_ex1.z(),
-        //                                                             q_ex1.w(), q_ex1.x(), q_ex1.y(), q_ex1.z());
-        // fflush(extrinsic);
-
-        TLC[0].block<3,1>(0,3) = t_ex1;
-        TLC[0].block<3,3>(0,0) = q_ex1.normalized().toRotationMatrix();
-
-    }
-
-    if(loop_closure)
-    {
-        Eigen::Matrix3d loop_old_r = rot_diff * Eigen::Quaterniond(para_loop_pose[6], para_loop_pose[3],para_loop_pose[4], para_loop_pose[5]).normalized().toRotationMatrix();
-        Eigen::Vector3d loop_old_t = rot_diff * Eigen::Vector3d(para_loop_pose[0] - para_pose[0][0],
-                                                                para_loop_pose[1] - para_pose[0][1],
-                                                                para_loop_pose[2] - para_pose[0][2]) + origin_t0;
-        
-        ROS_WARN_STREAM("loop old t: " << loop_old_t.transpose());
-        loop_closure = false;
-        loop_local_index = -1;
-
-    }
+    TLC[0].block<3,1>(0,3) = t_ex1;
+    TLC[0].block<3,3>(0,0) = q_ex1.normalized().toRotationMatrix();
 
     ROS_WARN_STREAM("extrinsic parameters: TLC" << endl << TLC[0]);
-    //ROS_WARN_STREAM("extrinsic parameters: tlc " << t_ex1.transpose());
 
     Eigen::VectorXd dep = feature_manager.getDepthVector();
     for(int i =0; i < feature_manager.getFeatureCount(); i++)
@@ -1220,6 +1147,19 @@ void Estimator::double2Matrix()
 
     feature_manager.setDepth(dep);
     feature_manager.removeFailures();
+
+    /*if(loop_closure)
+    {
+        Eigen::Matrix3d loop_old_r = rot_diff * Eigen::Quaterniond(para_loop_pose[6], para_loop_pose[3],para_loop_pose[4], para_loop_pose[5]).normalized().toRotationMatrix();
+        Eigen::Vector3d loop_old_t = rot_diff * Eigen::Vector3d(para_loop_pose[0] - para_pose[0][0],
+                                                                para_loop_pose[1] - para_pose[0][1],
+                                                                para_loop_pose[2] - para_pose[0][2]) + origin_t0;
+        
+        ROS_WARN_STREAM("loop old t: " << loop_old_t.transpose());
+        loop_closure = false;
+        loop_local_index = -1;
+
+    }*/
 }
 
 bool Estimator::optimization()
@@ -1247,11 +1187,11 @@ bool Estimator::optimization()
     }
 
     //printf("adding margin\n");
-    problem.SetParameterBlockConstant(para_ex[0]);
-    // if(ESTIMATE_LASER == 0)
-    // {
-    //     
-    // }
+    
+    if(ESTIMATE_LASER == 0)
+    {
+        problem.SetParameterBlockConstant(para_ex[0]);
+    }
 
     if(!first_refine){
 
@@ -1287,15 +1227,12 @@ bool Estimator::optimization()
         {
             it_per_id.used_num = it_per_id.feature_per_frame.size();
 
-            if(it_per_id.start_frame >= WINDOW_SIZE-2)
-                continue;
-
-            ++feature_index;
-            
             if(it_per_id.used_num < 4)
             {
                 continue;
             }
+
+            ++feature_index;
 
             //printf("feature idx %d\n",feature_index);
 
@@ -1320,7 +1257,7 @@ bool Estimator::optimization()
         }
     }
 
-    if(loop_closure)
+   /* if(loop_closure)
     {
         printf(RED"open loop optimization\n"WHT);
         problem.AddParameterBlock(para_loop_pose,7, local_parameterization);
@@ -1330,9 +1267,13 @@ bool Estimator::optimization()
 
         for(auto &it_per_id: feature_manager.feature)
         {
-            if(it_per_id.start_frame >= WINDOW_SIZE-2)
+            it_per_id.used_num = it_per_id.feature_per_frame.size();
+
+            if(it_per_id.used_num < 4)
+            {
                 continue;
-            
+            }
+
             ++feature_index;
 
             int start = it_per_id.start_frame;
@@ -1348,7 +1289,7 @@ bool Estimator::optimization()
                     printf(RED"finding loop correspondence\n"WHT);
                     Eigen::Vector2d pts_j = Eigen::Vector2d(loop_matched_points[loop_feature_index].x(), loop_matched_points[loop_feature_index].y());
                     Eigen::Vector2d pts_i = it_per_id.feature_per_frame[0].pt;
-                    printf(RED"point id %d, normal 2d (%f, %f) start 2d (%f, %f)\n"WHT, it_per_id.feature_id,pts_j.x(), pts_j.y(), pts_i.x(), pts_i.y());
+                    printf(RED"point index %d, normal 2d (%f, %f) start 2d (%f, %f)\n"WHT, feature_index,pts_j.x(), pts_j.y(), pts_i.x(), pts_i.y());
                     printf(RED"point start frame %d , depth %f\n"WHT, start, it_per_id.estimated_depth);
                     MonoProjectionFactor *f = new MonoProjectionFactor(pts_i, pts_j);
                     problem.AddResidualBlock(f, loss_function, para_pose[start], para_loop_pose, para_ex[0], para_depth_inv[feature_index]);
@@ -1357,7 +1298,7 @@ bool Estimator::optimization()
 
             }
         }
-    }
+    }*/
 
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::DENSE_SCHUR;
@@ -1422,7 +1363,6 @@ void Estimator::margin()
                 {
                     drop_set.push_back(i);
                     //printf("adding margin pose\n");
-
                 }
             }
 
@@ -1450,19 +1390,14 @@ void Estimator::margin()
             int feature_index = -1;
             for(auto &it_per_id: feature_manager.feature)
             {
-                if(it_per_id.start_frame >= WINDOW_SIZE-2)
-                {
-                    continue;
-                }
-                ++feature_index;
-
                 it_per_id.used_num = it_per_id.feature_per_frame.size();
                 if(it_per_id.used_num < 4)
                 {
                     continue;
                 }
 
-                
+                ++feature_index;
+
                 int i = it_per_id.start_frame, j = i -1;
 
                 if(i !=0)

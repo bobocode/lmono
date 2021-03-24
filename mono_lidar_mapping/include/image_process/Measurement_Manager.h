@@ -76,6 +76,7 @@ class MeasurementManager
         std::mutex loop_mutex_;
         std::mutex state_mutex_;
         std::mutex thread_mutex_;
+        
         std::condition_variable con_;
         std::condition_variable loop_con_;
 

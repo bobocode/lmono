@@ -1,0 +1,10 @@
+<!-- -*- mode: XML -*- -->
+
+<launch>
+  <arg name="rviz" default="true" />
+  
+ <arg name="map_config_path" default = "$(find monolio)/config/hk_map_config_0314.yaml" />
+  <node pkg = "monolio" type = "monolio_map_build_node" name ="monolio_map_build" output = "screen">
+        <param name = "map_config_file" type= "string" value ="$(arg map_config_path)"/>
+  </node> 
+</launch>

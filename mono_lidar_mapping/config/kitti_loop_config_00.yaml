@@ -1,19 +1,19 @@
 %YAML:1.0
 
-cam0_calib: "/home/bo/auto-calib/src/auto_calib/config/cam00.yaml"
-cam1_calib: "/home/bo/auto-calib/src/auto_calib/config/cam01.yaml"
+cam0_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam00.yaml"
+cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam01.yaml"
 
 image_width: 1241
 image_height: 376
 
-min_pnp_loop_num: 5
-min_brief_loop_num: 20
+min_pnp_loop_num: 10
+min_brief_loop_num: 25
 min_orb_loop_num: 20
-skip_time: 0.2
+skip_time: 0.5
 skip_dis: 0.5
 skip_cnt: 0
 loop_search_time: 0.3
-loop_search_gap: 50
-debug_image: 1
+loop_search_gap: 100
+debug_image: 0
 
 

@@ -273,7 +273,7 @@ int main(int argc, char **argv)
     }
 
     ros::Subscriber sub_extrinsic_ = nh.subscribe("/fused/extrinsic",2000,extrinsicHandler);
-    ros::Subscriber sub_point_cloud_ = nh.subscribe("/velodyne_points",2000,pointsHandler);
+    ros::Subscriber sub_point_cloud_ = nh.subscribe("/compact_data",2000,pointsHandler);
     ros::Subscriber sub_image_ = nh.subscribe(IMAGE_TOPIC_0,2000, imageHandler);
     ros::Subscriber sub_odom_ = nh.subscribe("/fused/new_camera_odometry",2000, odomHandler);
 

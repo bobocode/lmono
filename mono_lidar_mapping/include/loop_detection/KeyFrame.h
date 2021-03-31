@@ -8,7 +8,7 @@
 #include "camodocal/camera_models/CameraFactory.h"
 #include "camodocal/camera_models/CataCamera.h"
 #include "camodocal/camera_models/PinholeCamera.h"
-
+#include <algorithm>
 #include "loop_parameter.h"
 #include "utils/TicToc.h"
 #include "utils/math_utils.h"
@@ -87,6 +87,8 @@ class KeyFrame
         Eigen::Matrix3d R_w_i;
         Eigen::Vector3d origin_vio_T;		
         Eigen::Matrix3d origin_vio_R;
+        
+        std::vector<uchar> img_buff; //buffer for coding
         cv::Mat image;
         cv::Mat thumbnail;
         vector<cv::Point3f> point_3d; 

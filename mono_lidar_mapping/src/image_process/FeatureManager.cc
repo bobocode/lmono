@@ -42,12 +42,12 @@ void FeatureManager::setDepth(const Eigen::VectorXd &x)
     {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         
-        if (it_per_id.used_num < 4)
+        if (it_per_id.used_num < TRACK_CNT)
             continue;
 
         it_per_id.estimated_depth = 1.0 / x(++feature_index);
         //ROS_INFO("feature id %d , start_frame %d, depth %f ", it_per_id->feature_id, it_per_id-> start_frame, it_per_id->estimated_depth);
-        if (it_per_id.estimated_depth < 0.1)
+        if (it_per_id.estimated_depth < 0.1 || it_per_id.estimated_depth > 300)
         {
             it_per_id.solve_flag = 2;
         }
@@ -64,7 +64,7 @@ Eigen::VectorXd FeatureManager::getDepthVector()
     {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
     
-        if (it_per_id.used_num < 4)
+        if (it_per_id.used_num < TRACK_CNT)
             continue;
 
         dep_vec(++feature_index) = 1. / it_per_id.estimated_depth;
@@ -129,10 +129,8 @@ void FeatureManager::triangulate(int frameCnt,  Eigen::Matrix3d Rs[], Eigen::Vec
         }*/
 
         it_per_id.used_num = it_per_id.feature_per_frame.size();
-        if(it_per_id.used_num <4)
-        {
+        if (it_per_id.used_num < TRACK_CNT)
             continue;
-        }
 
         int i = it_per_id.start_frame, j = i-1;
         
@@ -192,26 +190,66 @@ void FeatureManager::triangulate(int frameCnt,  Eigen::Matrix3d Rs[], Eigen::Vec
             it_per_id.estimated_depth = localPoint.z();
         }
 
-        // if(it_per_id.feature_per_frame[0].stereo)
-        // {
-        //     cv::Point3d point;
-        //     cv::Point2d rect_uv;
+    }
 
-        //     rect_uv.x = it_per_id.feature_per_frame[0].pt.x();
-        //     rect_uv.y = it_per_id.feature_per_frame[0].pt.y();
+    if(1)
+    {
+        ceres::Problem problem;
+        ceres::LossFunction *loss_function;
+        loss_function = new ceres::CauchyLoss(1.0);
 
-        //     double disparity = it_per_id.feature_per_frame[0].uv.x() - it_per_id.feature_per_frame[0].right_uv.x();
-        //     stereo_model.projectDisparityTo3d(rect_uv, disparity,point);
+        int feature_index = -1;
+        for(auto &it_per_id: feature)
+        {
+            it_per_id.used_num = it_per_id.feature_per_frame.size();
+            if (it_per_id.used_num < TRACK_CNT)
+                continue;
 
-        //     if(point.z >0)
-        //     {
-        //         it_per_id.estimated_depth = point.z;
-        //         //printf("stereo feature %d depth: %f\n", it_per_id.feature_id, point.z);
-        //         continue;
-        //     }
+            ++feature_index;
 
-        // }
+            para_depth_inv[feature_index][0] = 1.0 / it_per_id.estimated_depth;
+            problem.AddParameterBlock(para_depth_inv[feature_index],1);
 
+            int i = it_per_id.start_frame;
+            int j = i-1;
+
+            Eigen::Vector2d pt_i = it_per_id.feature_per_frame[0].pt;
+
+            for(auto &it_per_frame: it_per_id.feature_per_frame)
+            {
+                j++;
+
+                if(i != j && j != WINDOW_SIZE)
+                {   
+                    Eigen::Vector2d pt_j = it_per_frame.pt;
+                    //printf("frame j %d, pt j: [%f, %f]\n", j, pt_j.x(), pt_j.y());
+
+                    ReprojectionFactor *f_pro = new ReprojectionFactor(pt_i, pt_j, Rs[i], Ps[i], Rs[j], Ps[j],tlc);
+                    problem.AddResidualBlock(f_pro, loss_function, para_depth_inv[feature_index]);
+                } 
+
+            }
+        }  
+
+        //printf("nonlinear triangulate start\n");
+        ceres::Solver::Options options;
+        options.linear_solver_type = ceres::DENSE_SCHUR;  
+        //options.minimizer_progress_to_stdout = true;
+        options.max_solver_time_in_seconds = 0.2;   
+        ceres::Solver::Summary summary;   
+        ceres::Solve(options, &problem, &summary);   
+        //printf("nonlinear triangulate finish\n");
+
+        Eigen::VectorXd dep = getDepthVector();
+        for(int i =0; i < getFeatureCount(); i++)
+        {   
+            //ROS_INFO_STREAM("depth before: " << 1.0/ dep(i));
+            dep(i) = para_depth_inv[i][0];
+            //ROS_INFO_STREAM("depth after: " << 1.0/ dep(i));
+        }
+
+        setDepth(dep);
+        //removeFailures();
     }
        
 }
@@ -223,18 +261,19 @@ void FeatureManager::clearState()
 
 int FeatureManager::getFeatureCount()
 {
-    int cnt=-1;
+    int cnt=0;
     for(auto &it: feature)
     {
         it.used_num = it.feature_per_frame.size();
 
-        if (it.used_num < 4)
-            continue;
+        if(it.used_num >= TRACK_CNT)
+        {
+            cnt++;
+        }
 
-        ++cnt;
     }
 
-    return cnt+1;
+    return cnt;
 
 }
 
@@ -312,7 +351,7 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
             it->feature_per_frame.push_back(f_per_fra);
             last_track_num++;
 
-            if(it->feature_per_frame.size() >=4)
+            if(it->feature_per_frame.size() >= TRACK_CNT)
             {
                 long_track_num++;
             }
@@ -320,11 +359,11 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
         m.unlock();
     }
 
-    //printf("long track num: %d\n", long_track_num);
-    //printf("last track num: %d\n", last_track_num);
-    //printf("new feature num: %d\n", new_feature_num);
+    printf("long track num: %d\n", long_track_num);
+    printf("last track num: %d\n", last_track_num);
+    printf("new feature num: %d\n", new_feature_num);
 
-    if(frame_count <2 || last_track_num <20 || long_track_num < 40 ||new_feature_num > 0.5 * last_track_num)
+    if(frame_count <2 || last_track_num <20 || new_feature_num > 0.5 * last_track_num)
     {
         return true;
     }
@@ -348,7 +387,7 @@ bool FeatureManager::featureCheck(int frame_count, const std::map<int,std::vecto
     }else
     {
         //printf("parallax_sum: %lf, parallax_num: %d \n", parallax_sum, parallax_num);
-        //printf("current parallax: %lf \n",  parallax_sum / parallax_num);
+        printf("current parallax: %lf \n",  parallax_sum / parallax_num);
 
         return parallax_sum / parallax_num >= FEATURE_THRESHOLD;
     }

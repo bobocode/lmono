@@ -14,6 +14,7 @@ LoopDetector::LoopDetector()
     sequence_cnt = 0;
     sequence_loop.push_back(0);
     base_sequence = 1;
+    last_loop_time = 0.0;
 }
 
 LoopDetector::~LoopDetector()

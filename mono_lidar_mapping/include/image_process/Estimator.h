@@ -180,8 +180,8 @@ class Estimator: public MeasurementManager, public PointMapping
 
         enum MarginalizationFlag
         {
-            MARGIN_OLD = 0,
-            MARGIN_SECOND_NEW = 1
+            MARGIN_OLD,
+            MARGIN_SECOND_NEW,
         };
 
         enum EstimatorStageFlag {
@@ -193,7 +193,7 @@ class Estimator: public MeasurementManager, public PointMapping
         
 
         bool loop_closure;
-        bool first_refine;
+        int first_refine;
         int sum_of_measurement;
         int inputImageCnt;
         int frame_count;
@@ -232,6 +232,7 @@ class Estimator: public MeasurementManager, public PointMapping
         bool start_flag;
         int skip_cnt;
         Eigen::Vector3d last_t;
+        Eigen::Vector3d last_laser_t;
 
         double loop_time_stamp;
         int loop_local_index;
@@ -265,6 +266,7 @@ class Estimator: public MeasurementManager, public PointMapping
 
         int lost_frame_num;
         bool get_lost;
+        bool static_status;
         bool change_reference_frame;
         boost::shared_ptr<viso::VisualOdometryMono> mono_visual_odometer_;
         viso::VisualOdometryMono::parameters mono_visual_odometer_params_;

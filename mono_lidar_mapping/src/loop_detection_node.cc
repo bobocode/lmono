@@ -47,6 +47,8 @@ std::mutex process_mutex_;
 
 double last_skip_time = -1;
 Eigen::Vector3d last_T = Eigen::Vector3d(0,0,0);
+Eigen::Vector3d last_loop_T = Eigen::Vector3d(0,0,0);
+double last_loop_time = -1;
 int frame_index = 0;
 int sequence =0;
 
@@ -64,6 +66,14 @@ double LOOP_SEARCH_TIME;
 int LOOP_SEARCH_GAP;
 int MIN_PNP_LOOP_NUM;
 int MIN_BRIEF_LOOP_NUM;
+int MIN_ORB_LOOP_NUM;
+int USE_ORB;
+double ANGLE_THRESHOLD;
+double TRANS_THRESHOLD;
+double SKIP_LOOP_TIME;
+double SKIP_LOOP_DIS;
+cv::Mat MASK;
+int IMAGE_CROP;
 
 Eigen::Vector3d tlc;
 Eigen::Matrix3d qlc;
@@ -196,84 +206,89 @@ void process()
 
         if(pose_msg != NULL)
         {
-            if(pose_msg->header.stamp.toSec()-last_skip_time < SKIP_TIME)
+            if((pose_msg->header.stamp.toSec()-last_skip_time > SKIP_TIME) && (pose_msg->header.stamp.toSec() - last_loop_time) > SKIP_LOOP_TIME)
             {
-                continue;
-            }
-            printf("processing points\n");
-            cv_bridge::CvImageConstPtr ptr;
-            if (image_msg->encoding == "8UC1")
-            {
-                ROS_INFO_STREAM("mono8");
-                sensor_msgs::Image img;
-                img.header = image_msg->header;
-                img.height = image_msg->height;
-                img.width = image_msg->width;
-                img.is_bigendian = image_msg->is_bigendian;
-                img.step = image_msg->step;
-                img.data = image_msg->data;
-                img.encoding = "mono8";
-                ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
-
-            }else
-                //ROS_INFO_STREAM("image type " << img_msg->encoding);
-                ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
-            
-            cv::Mat image = ptr->image.clone();
-
-            last_skip_time = pose_msg->header.stamp.toSec();
-
-            Eigen::Vector3d T(pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y, pose_msg->pose.pose.position.z);
-            Eigen::Quaterniond Q(pose_msg->pose.pose.orientation.w, pose_msg->pose.pose.orientation.x, 
-                                                    pose_msg->pose.pose.orientation.y, pose_msg->pose.pose.orientation.z);
-
-            Eigen::Matrix3d R = Q.toRotationMatrix();
-            
-            if((T-last_T).norm() > SKIP_DIS)
-            {
-                std::vector<cv::Point3f> point_3d;
-                std::vector<cv::Point2f> point_2d_uv;
-                std::vector<cv::Point2f> point_2d_normal;
-                std::vector<int> point_id;
-
-
-                for(size_t i = 0; i < point_msg->points.size(); i++)
+                printf("processing points\n");
+                cv_bridge::CvImageConstPtr ptr;
+                if (image_msg->encoding == "8UC1")
                 {
-                    cv::Point3f p_3d;
-                    p_3d.x = point_msg->points[i].x;
-                    p_3d.y = point_msg->points[i].y;
-                    p_3d.z = point_msg->points[i].z;
+                    ROS_INFO_STREAM("mono8");
+                    sensor_msgs::Image img;
+                    img.header = image_msg->header;
+                    img.height = image_msg->height;
+                    img.width = image_msg->width;
+                    img.is_bigendian = image_msg->is_bigendian;
+                    img.step = image_msg->step;
+                    img.data = image_msg->data;
+                    img.encoding = "mono8";
+                    ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
 
-                    point_3d.push_back(p_3d);
-
-                    cv::Point2f p_2d_uv, p_2d_normal;
-                    int p_id;
-
-                    p_2d_normal.x = point_msg->channels[i].values[0];
-                    p_2d_normal.y = point_msg->channels[i].values[1];
-                    p_2d_uv.x = point_msg->channels[i].values[2];
-                    p_2d_uv.y = point_msg->channels[i].values[3];
-                    p_id = (int)point_msg->channels[i].values[4];
-
-                    point_2d_uv.push_back(p_2d_uv);
-                    point_2d_normal.push_back(p_2d_normal);
-                    point_id.push_back(p_id);
-
-                    // printf("receive publish point id %d, 3D point: %f, %f, %f, 2D uv point: %f, %f, 2D normal point: %f, %f\n",
-                    //      p_id, p_3d.x, p_3d.y, p_3d.z, p_2d_uv.x,p_2d_uv.y, p_2d_normal.x, p_2d_normal.y);
-                }
+                }else
+                    //ROS_INFO_STREAM("image type " << img_msg->encoding);
+                    ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
                 
-                printf("buidling keyframe database\n");
-                KeyFrame* keyframe = new KeyFrame(pose_msg->header.stamp.toSec(), frame_index, T, R, image, point_3d, point_2d_uv, point_2d_normal, point_id, sequence);
-                process_mutex_.lock();
-                frame_index ++;
-                loop_detector.addKeyFrame(keyframe,1);
-                sequence++;
-                last_T = T;
-                process_mutex_.unlock();
+                cv::Mat image = ptr->image.clone();
+
+                last_skip_time = pose_msg->header.stamp.toSec();
+
+                Eigen::Vector3d T(pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y, pose_msg->pose.pose.position.z);
+                Eigen::Quaterniond Q(pose_msg->pose.pose.orientation.w, pose_msg->pose.pose.orientation.x, 
+                                                        pose_msg->pose.pose.orientation.y, pose_msg->pose.pose.orientation.z);
+
+                Eigen::Matrix3d R = Q.toRotationMatrix();
+                
+                if((T-last_T).norm() > SKIP_DIS && (T-last_loop_T).norm() > SKIP_LOOP_DIS)
+                {
+                    std::vector<cv::Point3f> point_3d;
+                    std::vector<cv::Point2f> point_2d_uv;
+                    std::vector<cv::Point2f> point_2d_normal;
+                    std::vector<int> point_id;
+
+
+                    for(size_t i = 0; i < point_msg->points.size(); i++)
+                    {
+                        cv::Point3f p_3d;
+                        p_3d.x = point_msg->points[i].x;
+                        p_3d.y = point_msg->points[i].y;
+                        p_3d.z = point_msg->points[i].z;
+
+                        point_3d.push_back(p_3d);
+
+                        cv::Point2f p_2d_uv, p_2d_normal;
+                        int p_id;
+
+                        p_2d_normal.x = point_msg->channels[i].values[0];
+                        p_2d_normal.y = point_msg->channels[i].values[1];
+                        p_2d_uv.x = point_msg->channels[i].values[2];
+                        p_2d_uv.y = point_msg->channels[i].values[3];
+                        p_id = (int)point_msg->channels[i].values[4];
+
+                        point_2d_uv.push_back(p_2d_uv);
+                        point_2d_normal.push_back(p_2d_normal);
+                        point_id.push_back(p_id);
+
+                        // printf("receive publish point id %d, 3D point: %f, %f, %f, 2D uv point: %f, %f, 2D normal point: %f, %f\n",
+                        //      p_id, p_3d.x, p_3d.y, p_3d.z, p_2d_uv.x,p_2d_uv.y, p_2d_normal.x, p_2d_normal.y);
+                    }
+                    
+                    printf("buidling keyframe database\n");
+                    KeyFrame* keyframe = new KeyFrame(pose_msg->header.stamp.toSec(), frame_index, T, R, image, point_3d, point_2d_uv, point_2d_normal, point_id, sequence);
+                    process_mutex_.lock();
+                    frame_index ++;
+                    int loop_index = loop_detector.addKeyFrame(keyframe,1);
+
+                    if(loop_index != -1)
+                    {
+                        last_loop_time = keyframe->time_stamp;
+                        last_loop_T = keyframe->T_w_i;
+                    }
+
+                    sequence++;
+                    last_T = T;
+                    process_mutex_.unlock();
+                }
             }
         }
-
         std::chrono::milliseconds dura(5);
         std::this_thread::sleep_for(dura);
     }
@@ -323,6 +338,25 @@ int main(int argc, char **argv)
         fsSettings["skip_time"] >> SKIP_TIME;
         fsSettings["min_pnp_loop_num"] >> MIN_PNP_LOOP_NUM;
         fsSettings["min_brief_loop_num"] >> MIN_BRIEF_LOOP_NUM;
+        fsSettings["min_orb_loop_num"] >> MIN_ORB_LOOP_NUM;
+        fsSettings["use_orb"] >> USE_ORB;
+        fsSettings["angle_threshold"] >> ANGLE_THRESHOLD;
+        fsSettings["trans_threshold"] >> TRANS_THRESHOLD;
+        fsSettings["skip_loop_time"] >> SKIP_LOOP_TIME;
+        fsSettings["image_crop"]   >> IMAGE_CROP;
+        fsSettings["skip_loop_dis"] >> SKIP_LOOP_DIS;
+
+        if(USE_ORB)
+        {
+            MASK = cv::Mat(ROW, COL, CV_8UC1, cv::Scalar(255));
+            for (int i = 0; i < ROW; ++i)
+                for (int j = 0; j < COL; ++j)
+                    if (j < IMAGE_CROP || j > COL - IMAGE_CROP)
+                        MASK.at<uchar>(i,j) = 0;
+        }
+
+        std::cout << "angle threshold: " << ANGLE_THRESHOLD << std::endl;
+        std::cout << "trans threshold: " << TRANS_THRESHOLD << std::endl;
 
         m_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(CAM0);
 

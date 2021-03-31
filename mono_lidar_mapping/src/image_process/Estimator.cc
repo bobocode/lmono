@@ -69,8 +69,9 @@ void Estimator::setParameter()
     inputImageCnt = 0;
     frame_count = 0;
     sum_of_measurement=0;
-    first_refine = true;
+    first_refine = 0;
     loop_closure = false;
+    static_status = false;
     loop_time_stamp = -1;
     loop_local_index = -1;
 
@@ -89,6 +90,7 @@ void Estimator::setParameter()
     C0_Pos.setIdentity();
     prev_laser_pose.setIdentity();
     prev_cam_pose.setIdentity();
+    last_laser_t.setZero();
 
     stage_flag = NOT_INITED;
 
@@ -153,18 +155,11 @@ void Estimator::outliersRejection(std::set<int> &removeIndex, const double &erro
         int errCnt = 0;
 
         it_per_id.used_num = it_per_id.feature_per_frame.size();
-        if(it_per_id.start_frame >= WINDOW_SIZE-2)
-        {
-            continue;
-        }
 
-        ++feature_index;
+        if (it_per_id.used_num < TRACK_CNT)
+                continue;
 
-        if(it_per_id.used_num < 4)
-        {
-            continue;
-        }
-
+        
         int i = it_per_id.start_frame, j = i -1;
 
         Eigen::Vector2d pt_i = it_per_id.feature_per_frame[0].pt;
@@ -204,7 +199,7 @@ void Estimator::outliersRejection(std::set<int> &removeIndex, const double &erro
     }
     int count = feature_manager.getFeatureCount();
     //printf("average reprojection error: %f\n", sum_err/count);
-    //printf("outlier Num: %d\n", rejectCnt);
+    printf("outlier Num: %d\n", rejectCnt);
 }
 
 Eigen::Matrix4d Estimator::processCompactData(const sensor_msgs::PointCloud2ConstPtr &compact_data,
@@ -229,6 +224,21 @@ Eigen::Matrix4d Estimator::processCompactData(const sensor_msgs::PointCloud2Cons
 
     Pos.block<3,3>(0,0) = L0_Q.toRotationMatrix();
     Pos.block<3,1>(0,3) = L0_P;
+
+    if((L0_P - last_laser_t).norm() < 0.1)
+    {
+        static_status = true;
+    }else
+    {
+        static_status = false;
+    }
+    
+
+    last_laser_t = L0_P;
+
+    fprintf(loam_odometry, "%f,%f,%f,%f,%f,%f,%f,%f \n", compact_data->header.stamp.toSec(),L0_P.x(), L0_P.y(), L0_P.z(),
+                                                        L0_Q.w(), L0_Q.x(), L0_Q.y(), L0_Q.z());
+    fflush(loam_odometry);
     //ROS_INFO_STREAM("laser transformation to init: \n" << Pos.matrix());
 
     return Pos;
@@ -400,12 +410,12 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
     if(feature_manager.featureCheck(frame_count, feature, header))
     {
         marginalization_flag = MARGIN_OLD;
-        //printf("keyframe\n");
+        printf("keyframe\n");
 
     }else
     {
         marginalization_flag = MARGIN_SECOND_NEW;
-        //printf("non-keyframe\n");
+        printf("non-keyframe\n");
     }
     
     Header[frame_count] = header;
@@ -530,11 +540,6 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
     }else
     {
         loopCorrection();
-        // Eigen::VectorXd dep = feature_manager.getDepthVector();
-        // for(int i =0; i < feature_manager.getFeatureCount(); i++)
-        // {
-        //     printf("before triangulation feature %d depth: %f\n",i,1.0/dep(i));
-        // }
 
         feature_manager.triangulate(frame_count, Rs, Ps, TLC[0]);
         std::set<int> removeIndex;
@@ -544,15 +549,9 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
         tic_toc_.Tic();
         optimization();
         ROS_INFO_STREAM("prediction time: " << tic_toc_.Toc());
-        outliersRejection(removeIndex,10);
+        outliersRejection(removeIndex,OUTLIER_T);
         feature_manager.removeOutlier(removeIndex);
         slideWindow();
-
-        // Eigen::VectorXd dep = feature_manager.getDepthVector();
-        // for(int i =0; i < feature_manager.getFeatureCount(); i++)
-        // {
-        //     printf("after sliding window feature %d depth: %f\n",i,1.0/dep(i));
-        // }
     }
 
     prev_time = header;
@@ -614,18 +613,30 @@ void Estimator::processEstimation()
             tlc = TLC[0].block<3,1>(0,3);
             qlc = TLC[0].block<3,3>(0,0);
 
-            Eigen::Vector3d cam_p = Rs[0] * tlc + Ps[0];
-            Eigen::Matrix3d cam_r = Rs[0] * qlc;
+            Eigen::Vector3d cam_p = Rs[WINDOW_SIZE-2] * tlc + Ps[WINDOW_SIZE-2];
+            Eigen::Matrix3d cam_r = Rs[WINDOW_SIZE-2] * qlc;
 
-            visualizer_->pubCamNewOdom(cam_p, Eigen::Quaterniond(cam_r), Header[WINDOW_SIZE-2]);
-            visualizer_->pubNewOdom(Ps[WINDOW_SIZE-2],Eigen::Quaterniond(Rs[WINDOW_SIZE-2]),Header[WINDOW_SIZE-2]);
-            visualizer_->pubExtrinsic(tlc, qlc, Header[0]);
+            visualizer_->pubCamNewOdom(cam_p, Eigen::Quaterniond(cam_r).normalized(), Header[WINDOW_SIZE-2]);
+            visualizer_->pubNewOdom(Ps[WINDOW_SIZE-2],Eigen::Quaterniond(Rs[WINDOW_SIZE-2]).normalized(),Header[WINDOW_SIZE-2]);
+            visualizer_->pubExtrinsic(tlc, qlc, Header[WINDOW_SIZE-2]);
 
             sensor_msgs::PointCloud point_cloud;
             point_cloud.header.stamp = ros::Time(Header[WINDOW_SIZE-2]);
             for(auto &it_per_id: feature_manager.feature)
             {
+                //printf("end frame: %d\n", it_per_id.endFrame());
                 int frame_size = it_per_id.feature_per_frame.size();
+
+                // if(it_per_id.endFrame() >= WINDOW_SIZE -2)
+                // {
+                //     printf("solve flag: %d\n", it_per_id.solve_flag);
+                //     printf("used num: %d\n", frame_size);
+                // }
+
+                if(frame_size < TRACK_CNT)
+                {
+                    continue;
+                }
 
                 if(it_per_id.start_frame < WINDOW_SIZE-2 && it_per_id.start_frame +frame_size-1 >= WINDOW_SIZE-2 && it_per_id.solve_flag ==1)
                 {
@@ -672,21 +683,18 @@ void Estimator::processEstimation()
             }
 
             ROS_WARN_STREAM("pub feature points size " << point_cloud.points.size());
-
+            
             visualizer_->pubKeyframePoints(point_cloud);
         }
 
         if(stage_flag == INITED)
         {   
-            Eigen::Vector3d loam_p = L0_Pos.block<3,1>(0,3);
-            Eigen::Quaterniond loam_r(L0_Pos.block<3,3>(0,0));
+            tlc = TLC[0].block<3,1>(0,3);
+            qlc = TLC[0].block<3,3>(0,0);
 
-            fprintf(loam_odometry, "%f,%f,%f,%f,%f,%f,%f,%f \n", img0_msg->header.stamp.toSec(),loam_p.x(), loam_p.y(), loam_p.z(),
-                                                                loam_r.w(), loam_r.x(), loam_r.y(), loam_r.z());
-            fflush(loam_odometry);
-    
-            Eigen::Vector3d cur_p = Ps[WINDOW_SIZE];
-            Eigen::Quaterniond cur_q(Rs[WINDOW_SIZE]);
+
+            Eigen::Vector3d cur_p = qlc * Ps[WINDOW_SIZE] + tlc;
+            Eigen::Quaterniond cur_q(qlc * Rs[WINDOW_SIZE]);
             fprintf(new_odometry, "%f,%f,%f,%f,%f,%f,%f,%f \n", img0_msg->header.stamp.toSec(),cur_p.x(), cur_p.y(), cur_p.z(),
                                                             cur_q.w(), cur_q.x(), cur_q.y(), cur_q.z());
             fflush(new_odometry);
@@ -1012,6 +1020,7 @@ bool Estimator::runInitialization()
     }
 
     double s = x(3);
+    
 
     Eigen::Matrix3d rlc = TLC[0].block<3,3>(0,0);
     Eigen::Vector3d tlc = TLC[0].block<3,1>(0,3);
@@ -1035,7 +1044,7 @@ bool Estimator::runInitialization()
         Eigen::Vector3d L0_Pi = all_image_frame[i].second.L0_T;
 
         Rs[i] = rlc.transpose() * L0_Ri;
-        Ps[i] = rlc.transpose() * (L0_Pi - tlc) - rlc.transpose() * (laser_P0 - tlc);
+        Ps[i] = rlc.transpose() * (L0_Pi - tlc); //- rlc.transpose() * (laser_P0 - tlc);
         //std::cout << "Rs[" << i << "]\n" << Rs[i] << std::endl;
         //std::cout << "Ps[" <<i <<"]" << Ps[i].transpose() << std::endl;
 
@@ -1095,7 +1104,7 @@ void Estimator::matrix2Double()
         //printf("before optimization feature %d depth: %f\n",i,1.0/dep(i));
         para_depth_inv[i][0] = dep(i);
     }
-    std::cout << "feature size: " << dep.size() << std::endl;
+    std::cout << "before optimized feature size: " << dep.size() << std::endl;
 }
 
 void Estimator::double2Matrix()
@@ -1103,7 +1112,7 @@ void Estimator::double2Matrix()
     Eigen::Vector3d origin_R0 = mathutils::R2ypr(Rs[0]);
     Eigen::Vector3d origin_t0 = Ps[0];
 
-    Eigen::Vector3d origin_R00 = mathutils::R2ypr(Eigen::Quaterniond(para_pose[0][6], para_pose[0][3], para_pose[0][4], para_pose[0][5]).toRotationMatrix());
+    Eigen::Vector3d origin_R00 = mathutils::R2ypr(Eigen::Quaterniond(para_pose[0][6], para_pose[0][3], para_pose[0][4], para_pose[0][5]).normalized().toRotationMatrix());
     double yaw_diff = origin_R0.x() - origin_R00.x();
     double pitch_diff = origin_R0.y() - origin_R00.y();
     double roll_diff = origin_R0.z() - origin_R00.z();
@@ -1113,7 +1122,7 @@ void Estimator::double2Matrix()
     rot_diff = Rs[0] * Eigen::Quaterniond(para_pose[0][6],
                                     para_pose[0][3],
                                     para_pose[0][4],
-                                    para_pose[0][5]).toRotationMatrix().transpose();
+                                    para_pose[0][5]).normalized().toRotationMatrix().transpose();
 
     //std::cout << "rot diff: " << (origin_R0 - origin_R00).transpose() << std::endl;
 
@@ -1144,22 +1153,23 @@ void Estimator::double2Matrix()
         dep(i) = para_depth_inv[i][0];
         //ROS_INFO_STREAM("depth after: " << 1.0/ dep(i));
     }
-
+     std::cout << "after optimized feature size: " << dep.size() << std::endl;
+    
     feature_manager.setDepth(dep);
     feature_manager.removeFailures();
+    
 
-    /*if(loop_closure)
+    if(loop_closure)
     {
-        Eigen::Matrix3d loop_old_r = rot_diff * Eigen::Quaterniond(para_loop_pose[6], para_loop_pose[3],para_loop_pose[4], para_loop_pose[5]).normalized().toRotationMatrix();
-        Eigen::Vector3d loop_old_t = rot_diff * Eigen::Vector3d(para_loop_pose[0] - para_pose[0][0],
-                                                                para_loop_pose[1] - para_pose[0][1],
-                                                                para_loop_pose[2] - para_pose[0][2]) + origin_t0;
+        Eigen::Matrix3d Rl0_li = q_ex1.normalized().toRotationMatrix()* Rs[WINDOW_SIZE];
+        Eigen::Vector3d Pl0_li = q_ex1.normalized().toRotationMatrix() * Ps[WINDOW_SIZE] + t_ex1;
+
+        transform_aft_mapped_.pos = Pl0_li.cast<float>();
+        transform_aft_mapped_.rot = Eigen::Quaterniond(Rl0_li).cast<float>();
         
-        ROS_WARN_STREAM("loop old t: " << loop_old_t.transpose());
         loop_closure = false;
         loop_local_index = -1;
-
-    }*/
+    }
 }
 
 bool Estimator::optimization()
@@ -1193,7 +1203,7 @@ bool Estimator::optimization()
         problem.SetParameterBlockConstant(para_ex[0]);
     }
 
-    if(!first_refine){
+    if(first_refine >= FINE_TIMES){
 
         prior_trans = TLC[0];
         PriorFactor *f_prior = new PriorFactor(prior_trans);
@@ -1202,7 +1212,7 @@ bool Estimator::optimization()
     }else
     {
         /* code */
-        first_refine = false;
+        first_refine ++;
     }
     
     for(int i =0; i < frame_count; ++i)
@@ -1220,17 +1230,15 @@ bool Estimator::optimization()
 
     }
 
-    if(ESTIMATE_LASER !=0)
+    if(ESTIMATE_LASER && !static_status)
     {
         int feature_index = -1;
         for(auto &it_per_id: feature_manager.feature)
         {
             it_per_id.used_num = it_per_id.feature_per_frame.size();
 
-            if(it_per_id.used_num < 4)
-            {
+            if (it_per_id.used_num < TRACK_CNT)
                 continue;
-            }
 
             ++feature_index;
 
@@ -1308,7 +1316,7 @@ bool Estimator::optimization()
     options.max_num_iterations = NUM_ITERATIONS;
     options.minimizer_progress_to_stdout = false;
     
-    if(marginalization_flag = MARGIN_OLD)
+    if(marginalization_flag == MARGIN_OLD)
     {
         options.max_solver_time_in_seconds = SOLVER_TIME * 4.0 / 5.0;
     }else
@@ -1328,7 +1336,10 @@ bool Estimator::optimization()
         return false;
     }
 
-    margin();
+    if(ESTIMATE_LASER)
+    {
+        margin();
+    }
 
     if (summary.termination_type == ceres::CONVERGENCE || summary.final_cost < 5e-03)
 	{
@@ -1350,7 +1361,7 @@ void Estimator::margin()
     loss_function = new ceres::CauchyLoss(1.0);
     if(marginalization_flag == MARGIN_OLD)
     {   
-        //printf("margin the oldest one\n");
+        printf("margin the oldest one\n");
         MarginalizationInfo *marginalization_info = new MarginalizationInfo();
         matrix2Double();
 
@@ -1385,16 +1396,14 @@ void Estimator::margin()
             marginalization_info->addResidualBlockInfo(residual_block_info);
         }
 
-        if(ESTIMATE_LASER !=0)
+        if(ESTIMATE_LASER)
         {
             int feature_index = -1;
             for(auto &it_per_id: feature_manager.feature)
             {
                 it_per_id.used_num = it_per_id.feature_per_frame.size();
-                if(it_per_id.used_num < 4)
-                {
+                if (it_per_id.used_num < TRACK_CNT)
                     continue;
-                }
 
                 ++feature_index;
 
@@ -1421,6 +1430,7 @@ void Estimator::margin()
                 }
             }
         }
+        
         //printf("adding margin feature\n");
 
         marginalization_info->preMarginalize();
@@ -1449,13 +1459,13 @@ void Estimator::margin()
         last_marginalization_parameter_blocks = parameter_blocks;
     }else
     {
-        printf("margin the second new one");
+        printf("margin the second new one\n");
         if(last_marginalization_info && std::count(std::begin(last_marginalization_parameter_blocks), std::end(last_marginalization_parameter_blocks),para_pose[WINDOW_SIZE-1]))
         {
             MarginalizationInfo *marginalization_info = new MarginalizationInfo();
             matrix2Double();
 
-            if(last_marginalization_info && last_marginalization_info->valid)
+            if(last_marginalization_info)
             {
                 std::vector<int> drop_set;
                 for(int i =0; i < static_cast<int>(last_marginalization_parameter_blocks.size()); i++)
@@ -1468,13 +1478,15 @@ void Estimator::margin()
 
                 Marginalization *marginalization = new Marginalization(last_marginalization_info);
                 ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(marginalization, NULL, last_marginalization_parameter_blocks, drop_set);
-
+                printf("add margin residual\n");
                 marginalization_info->addResidualBlockInfo(residual_block_info);
             }
 
-            marginalization_info->preMarginalize();
 
+            marginalization_info->preMarginalize();
+            printf("end pre marginalization\n");
             marginalization_info->marginalize();
+            printf("end marginalization\n");
 
             std::unordered_map<long, double *> addr_shift;
             for(int i =0; i <= WINDOW_SIZE; i++)

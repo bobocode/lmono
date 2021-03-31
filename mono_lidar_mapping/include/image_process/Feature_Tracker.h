@@ -27,6 +27,7 @@ Adapted from VINS-mono.
 #include "cv.h"
 #include <highgui.h>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 #include <eigen3/Eigen/Dense>
 //#include <viso_stereo.h>
 #include <matrix.h>
@@ -46,7 +47,7 @@ class FeatureTracker
         vector<cv::Point2f> undistortedPts(vector<cv::Point2f> &pts, camodocal::CameraPtr cam);
         vector<cv::Point2f> ptsVelocity(vector<int> &ids, vector<cv::Point2f> &pts, 
                                     map<int, cv::Point2f> &cur_id_pts, map<int, cv::Point2f> &prev_id_pts);
-
+        void rejectWithF();
         void drawTrack(const cv::Mat &imLeft, cv::Mat &imRight,
                                    vector<int> &curLeftIds,
                                    vector<cv::Point2f> &curLeftPts, 

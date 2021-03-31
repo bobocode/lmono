@@ -254,7 +254,13 @@ vector<cv::Point2f> FeatureTracker::undistortedPts(vector<cv::Point2f> &pts, cam
     }
 
     if(1)
-    {
+    {   
+
+        if(REJECT_F)
+        {
+            rejectWithF();
+        }
+        
         //printf("set mask begins\n");
         setMask();
 
@@ -425,3 +431,73 @@ vector<cv::Point2f> FeatureTracker::undistortedPts(vector<cv::Point2f> &pts, cam
 
     return featureFrame;
  }
+
+ void FeatureTracker::rejectWithF()
+{
+    if (cur_pts.size() >= 8)
+    {
+        ROS_INFO_STREAM("FM ransac begins");
+        vector<cv::Point2f> un_cur_pts(cur_pts.size()), un_prev_pts(prev_pts.size());
+        for (unsigned int i = 0; i < cur_pts.size(); i++)
+        {
+            Eigen::Vector3d tmp_p;
+            cams[0]->liftProjective(Eigen::Vector2d(cur_pts[i].x, cur_pts[i].y), tmp_p);
+            tmp_p.x() = FOCAL_LENGTH * tmp_p.x() / tmp_p.z() + COL / 2.0;
+            tmp_p.y() = FOCAL_LENGTH * tmp_p.y() / tmp_p.z() + ROW / 2.0;
+            un_cur_pts[i] = cv::Point2f(tmp_p.x(), tmp_p.y());
+
+            cams[0]->liftProjective(Eigen::Vector2d(prev_pts[i].x, prev_pts[i].y), tmp_p);
+            tmp_p.x() = FOCAL_LENGTH * tmp_p.x() / tmp_p.z() + COL / 2.0;
+            tmp_p.y() = FOCAL_LENGTH * tmp_p.y() / tmp_p.z() + ROW / 2.0;
+            un_prev_pts[i] = cv::Point2f(tmp_p.x(), tmp_p.y());
+        }
+
+        vector<uchar> status;
+        cv::Mat F = cv::findFundamentalMat(un_cur_pts, un_prev_pts, cv::FM_RANSAC, F_THRESHOLD, 0.99, status);
+        int size_a = cur_pts.size();
+        reduceVector(prev_pts, status);
+        reduceVector(cur_pts, status);
+        reduceVector(ids, status);
+        reduceVector(track_cnt, status);
+        // std::vector<cv::Vec<float,3>> epline;
+        // cv::computeCorrespondEpilines(un_cur_pts,1,F,epline);
+        un_cur_pts.clear();
+        un_prev_pts.clear();
+        status.clear();
+        for (unsigned int i = 0; i < cur_pts.size(); i++)
+        {
+            Eigen::Vector3d tmp_p;
+            cams[0]->liftProjective(Eigen::Vector2d(cur_pts[i].x, cur_pts[i].y), tmp_p);
+            tmp_p.x() = FOCAL_LENGTH * tmp_p.x() / tmp_p.z() + COL / 2.0;
+            tmp_p.y() = FOCAL_LENGTH * tmp_p.y() / tmp_p.z() + ROW / 2.0;
+            cv::Point3d pt_cur = cv::Point3d(tmp_p.x(), tmp_p.y(),1.0);
+
+            cams[0]->liftProjective(Eigen::Vector2d(prev_pts[i].x, prev_pts[i].y), tmp_p);
+            tmp_p.x() = FOCAL_LENGTH * tmp_p.x() / tmp_p.z() + COL / 2.0;
+            tmp_p.y() = FOCAL_LENGTH * tmp_p.y() / tmp_p.z() + ROW / 2.0;
+            cv::Point3d pt_prev = cv::Point3d(tmp_p.x(), tmp_p.y(),1.0);
+
+            cv::Mat pt1(pt_cur);
+            cv::Mat pt2(pt_prev);
+
+            double dis = cv::sampsonDistance(pt1, pt2,F);
+            //printf("sampson distance: %f\n", dis);
+
+            if(dis > F_DIS)
+            {
+                status.push_back(0);
+            }else
+            {
+                status.push_back(1);
+            }
+            
+        }
+
+        reduceVector(prev_pts, status);
+        reduceVector(cur_pts, status);
+        reduceVector(ids, status);
+        reduceVector(track_cnt, status);
+
+        printf("F reject: %d -> %lu: %f", size_a, cur_pts.size(), 1.0 * cur_pts.size() / size_a);
+    }
+}

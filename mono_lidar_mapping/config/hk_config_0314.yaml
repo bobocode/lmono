@@ -1,8 +1,6 @@
 %YAML:1.0
 
-#image0_topic: "/cam00/image_raw"
-#image1_topic: "/cam01/image_raw"
-image0_topic: "/camera/image_color"
+image0_topic: "/left_camera_pointgrey/image_color"
 image1_topic: "/image_right"
 #laser_odometry_topic: "/aft_mapped_to_init_high_frec"
 laser_odometry_topic: "/aft_mapped_to_init"
@@ -11,16 +9,32 @@ imu_topic: "/imu/data"
 use_imu: 0
 estimate_imu: 2
 estimate_laser: 1
+fine_times: 1
+feature_size: 150
+use_rejectF: 1
+f_threshold: 0.3
+outlier_t: 5
+f_dis: 0.01
+track_cnt: 3
 laser_to_camera0: !!opencv-matrix
    rows: 4
    cols: 4
    dt: d
-   data: [0.990767,  0.0216844, -0.133829,0,
-      0.133967, -0.00504594, 0.990973,  0,
-      0.0208134, -0.999752, -0.00790434, 0,
-     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
+   data: [9.9986619699858292e-01, 7.4607839938022578e-04, 1.6341097472710536e-02,-0.1810280764102935,
+     -1.6308919663901481e-02, -3.1954474235968582e-02, 9.9935625815606866e-01, -0.36568386793136597,
+      1.2677692956748719e-03, -9.9948904693514495e-01, -3.1938030898728646e-02, 0.08863129079341888,
+      0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
 
-delay_time: 0.1
+#laser_to_camera0: !!opencv-matrix
+#   rows: 4
+#   cols: 4
+#   dt: d
+#   data: [0.990767,  0.0216844, -0.133829,0,
+#      0.133967, -0.00504594, 0.990973,  0,
+#      0.0208134, -0.999752, -0.00790434, 0,
+#     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
+
+delay_time: 0.09
 
 cam0_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/hk_cam00.yaml"
 cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/hk_cam00.yaml"
@@ -54,7 +68,7 @@ acc_w: 0.001         # accelerometer bias random work noise standard deviation. 
 gyr_w: 1.0e-4       # gyroscope bias random work noise standard deviation.     #4.0e-5
 g_norm: 9.81007
 factor_weight: 1500
-laser_w: 2
+laser_w: 1
 odom_io: 1 #interval frame to public data 
 filter_size: 11
 kernel_type: CROSS

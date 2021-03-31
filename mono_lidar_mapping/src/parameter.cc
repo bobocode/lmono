@@ -23,7 +23,13 @@ std::string LASER_ODOM_TOPIC;
 std::string POINTS_TOPIC;
 std::string IMU_TOPIC;
 double DELAY_TIME;
-
+int FINE_TIMES;
+int FEATURE_SIZE;
+double F_THRESHOLD;
+double F_DIS;
+int TRACK_CNT;
+double OUTLIER_T;
+int REJECT_F;
 std::vector<std::string> CAM_NAMES;
 int OPEN_VISO;
 int STEREO;
@@ -109,6 +115,13 @@ void readParameters(ros::NodeHandle &n)
     CAM_NAMES.push_back(cam0Calib);
     CAM_NAMES.push_back(cam1Calib);
 
+    fsSettings["feature_size"] >> FEATURE_SIZE;
+    fsSettings["f_threshold"] >> F_THRESHOLD;
+    fsSettings["f_dis"] >> F_DIS;
+    fsSettings["fine_times"] >> FINE_TIMES;
+    fsSettings["track_cnt"] >> TRACK_CNT;
+    fsSettings["outlier_t"] >> OUTLIER_T;
+    fsSettings["use_rejectF"] >> REJECT_F;
     fsSettings["open_viso"] >> OPEN_VISO;
     fsSettings["stereo"] >> STEREO;
     fsSettings["camera_height"] >>CAMERA_HEIGHT;

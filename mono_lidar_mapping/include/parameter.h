@@ -71,10 +71,17 @@ extern double CAMERA_PITCH;
 extern double FEATURE_THRESHOLD;
 extern double SOLVER_TIME;
 extern int NUM_ITERATIONS;
+extern int FINE_TIMES;
 extern double MIN_DIST;
 extern int USE_IMU;
 extern double PRIOR_T;
 extern double PRIOR_R;
+extern int FEATURE_SIZE;
+extern double F_THRESHOLD;
+extern double F_DIS;
+extern int TRACK_CNT;
+extern double OUTLIER_T;
+extern int REJECT_F;
 
 extern int ODOM_IO;
 //extrinsic estimate cam0

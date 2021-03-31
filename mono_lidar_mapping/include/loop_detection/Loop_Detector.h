@@ -90,6 +90,7 @@ class LoopDetector
         vector<bool> sequence_loop;
         map<int, cv::Mat> image_pool;
         int earliest_loop_index;
+        double last_loop_time;
         int base_sequence;
 
         BriefDatabase db;

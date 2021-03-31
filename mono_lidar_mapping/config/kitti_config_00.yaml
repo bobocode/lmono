@@ -11,8 +11,14 @@ imu_topic: "/imu/data"
 use_imu: 0
 estimate_imu: 2
 estimate_laser: 1
-delay_time: 0.003
-
+delay_time: 0.03
+fine_times: 1
+feature_size: 150
+use_rejectF: 1
+f_threshold: 2.0
+f_dis: 1.0
+outlier_t: 5
+track_cnt: 4
 laser_to_camera0: !!opencv-matrix
    rows: 4
    cols: 4

@@ -29,11 +29,20 @@ KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i, Matrix3
 		cv::Mat tmp_img;
 		cv::cvtColor(_image, tmp_img,cv::COLOR_BGR2GRAY,1);
 		image = tmp_img.clone();
+		//cv::resize(tmp_img.clone(), image, cv::Size(ROW/2, COL/2));
 
 	}else
 	{
 		image = _image.clone();
+		//cv::resize(_image.clone(), image, cv::Size(ROW/2, COL/2));
 	}
+
+	// std::vector<int> img_param(2);
+    // img_param[0] = cv::IMWRITE_JPEG_QUALITY;
+    // img_param[1] = 80;//default(95) 0-100
+	// cv::imencode(".jpg", image, img_buff, img_param);
+
+	// cv::Mat image = cv::imdecode(img_buff,cv::CV_LOAD_IMAGE_GRAYSCALE);
 	
 	cv::resize(image, thumbnail, cv::Size(80, 60));
 	point_3d = _point_3d;
@@ -51,8 +60,34 @@ KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i, Matrix3
 	// printf("initial point 2d norm size %d\n", point_2d_norm.size());
 	// printf("initial point id size %d\n",point_id.size());
 
-	computeWindowBRIEFPoint();
-	computeBRIEFPoint();
+	#pragma omp parallel sections
+	{
+		#pragma omp section
+		{ 
+			computeWindowBRIEFPoint();
+		}
+
+		#pragma omp section
+		{ 
+			computeBRIEFPoint();
+		}
+
+		if(USE_ORB)
+		{
+			#pragma omp section
+			{ 
+				computeWindowORBPoint();
+			}
+
+			#pragma omp section
+			{ 
+				computeORBPoint();
+			}
+			
+		}
+	}
+	
+	
 	if(!DEBUG_IMAGE)
 		image.release();
 }
@@ -102,7 +137,7 @@ KeyFrame::KeyFrame(double _time_stamp, int _index, Vector3d &_vio_T_w_i, Matrix3
 // 	std::string file_name = CAM0;
 // 	m_camera = 
 // }
-/*
+
 void KeyFrame::computeORBPoint()
 {
 	std::vector<uchar> status;
@@ -133,7 +168,7 @@ void KeyFrame::computeWindowORBPoint()
 	cv::Ptr<cv::ORB> orb_detector = cv::ORB::create();
 	orb_detector->compute(image,orb_window_keypoints,window_orb_descriptors);
 }
-*/
+
 void KeyFrame::computeWindowBRIEFPoint()
 {
 	BriefExtractor extractor(BRIEF_PATTERN_FILE.c_str());
@@ -326,6 +361,10 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	vector<int> matched_id;
 	vector<uchar> status;
 
+	vector<uchar> orb_status;
+	vector<cv::Point3f> orb_matched_3d;
+	vector<cv::Point2f> orb_matched_2d_cur, orb_matched_2d_old, orb_matched_2d_old_norm;
+
 	matched_3d = point_3d;
 	matched_2d_cur = point_2d_uv;
 	matched_2d_cur_norm = point_2d_norm;
@@ -365,7 +404,53 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	// 	printf("loop match img\n");
 	// 	cv::imwrite( path.str().c_str(), loop_match_img);
 	// }
-	
+
+	if(USE_ORB)
+	{
+		
+		vector<cv::DMatch> orb_matches, good_orb_matches; 
+		cv::BFMatcher orb_matcher = cv::BFMatcher(cv::NORM_HAMMING);
+		orb_matcher.match(window_orb_descriptors, old_kf->orb_descriptors,orb_matches);
+		std::sort(orb_matches.begin(), orb_matches.end());
+		for(int i =0; i < orb_matches.size(); ++i)
+		{
+			good_orb_matches.push_back(orb_matches[i]);
+			if(orb_matches[i].distance > orb_matches[0].distance *2)
+			{
+				break;
+			}
+		}
+
+		for(int i =0 ; i < matched_3d.size(); i++)
+		{
+			int cur_index = i;
+
+			auto it = find_if(good_orb_matches.begin(), good_orb_matches.end(), [cur_index](const cv::DMatch &it)
+			{
+				return it.queryIdx == cur_index;
+			});
+
+			if(it->queryIdx == cur_index)
+			{
+				status.push_back(1);
+			}else
+			{
+				status.push_back(0);
+			}
+			
+		}
+
+		reduceVector(matched_2d_cur, status);
+		reduceVector(matched_2d_old, status);
+		reduceVector(matched_2d_cur_norm, status);
+		reduceVector(matched_2d_old_norm, status);
+		reduceVector(matched_3d, status);
+		reduceVector(matched_id, status);
+
+		printf("orb feature size: %d\n", matched_id.size());
+
+	}
+
 	//printf("search by des\n");
 	searchByBRIEFDes(matched_2d_old, matched_2d_old_norm, status, old_kf->brief_descriptors, old_kf->brief_keypoints, old_kf->brief_keypoints_norm);
 	reduceVector(matched_2d_cur, status);
@@ -374,6 +459,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	reduceVector(matched_2d_old_norm, status);
 	reduceVector(matched_3d, status);
 	reduceVector(matched_id, status);
+	printf("brief feature size: %d\n", matched_id.size());
 	//printf("search by des finish\n");
 
 	// printf("des matched 3d size %d\n",matched_3d.size());
@@ -417,6 +503,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 	// 	}
 	// }
 	status.clear();
+
 	/*
 	FundmantalMatrixRANSAC(matched_2d_cur_norm, matched_2d_old_norm, status);
 	reduceVector(matched_2d_cur, status);
@@ -498,7 +585,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 		// 	return true;
 		// }
 
-	    if (abs(relative_euler.norm()) < 30.0 && relative_t.norm() < 20.0)
+	    if (abs(relative_euler.norm()) < ANGLE_THRESHOLD && relative_t.norm() < TRANS_THRESHOLD)
 	    {
 			point_loop_2d_norm = matched_2d_cur_norm;
 			point_old_2d_norm = matched_2d_old_norm;
@@ -531,7 +618,7 @@ bool KeyFrame::findConnection(KeyFrame* old_kf)
 					cv::line(loop_match_img, matched_2d_cur[i], old_pt, cv::Scalar(0, 255, 0), 2, 8, 0);
 				}
 				cv::Mat notationR(50, COL + gap + COL, CV_8UC3, cv::Scalar(255, 255, 255));
-				putText(notationR, "relative t: " + to_string(relative_t(0)) + " " + to_string(relative_t(1)) + " " + to_string(relative_t(2)), cv::Point2f(20, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255), 3);
+				putText(notationR, "relative t: " + to_string(relative_t.norm()) + " relative r: " + to_string(relative_euler.norm()), cv::Point2f(20, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255), 3);
 				cv::Mat notation(50, COL + gap + COL, CV_8UC3, cv::Scalar(255, 255, 255));
 				putText(notation, "current frame: " + to_string(time_stamp) + "  sequence: " + to_string(sequence) + " matched size: " + to_string(matched_2d_cur.size()), cv::Point2f(20, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255), 3);
 

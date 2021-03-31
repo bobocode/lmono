@@ -42,6 +42,7 @@ Adapted from VINS-Mono
 #include "initial/SFM.h"
 #include "initial/Solve_5pts.h"
 #include "parameter.h"
+#include "factor/ReprojectionFactor.h"
 
 class FeaturePerFrame
 {
@@ -165,6 +166,7 @@ class FeatureManager
         int new_feature_num;
         int last_track_num;
         int long_track_num;
+        double para_depth_inv[10000][1];
 
         std::mutex m;
 

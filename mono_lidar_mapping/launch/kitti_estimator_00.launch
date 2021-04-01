@@ -16,9 +16,9 @@
         <param name = "loop_config_file" type= "string" value ="$(arg loop_config_path)"/>
   </node> -->
 
-  <group if="$(arg rviz)">
+  <!--<group if="$(arg rviz)">
     <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find monolio)/config/lio_baseline.rviz" />
-  </group>
+  </group>-->
 
    
 

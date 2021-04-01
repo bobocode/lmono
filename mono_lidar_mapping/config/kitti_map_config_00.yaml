@@ -9,6 +9,6 @@ image0_topic: "/image_left"
 skip_dis: 0
 filter_size: 11
 kernel_type: FULL
-blur_type: guassian  #or  bilateral 
+blur_type: bilateral #or  guassian 
 kernel_size: 5
 save_map: 1

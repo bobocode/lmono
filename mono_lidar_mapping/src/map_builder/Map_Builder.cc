@@ -99,13 +99,6 @@ void MapBuilder::processMapping()
 
             map_mutex_.unlock();
 
-        }else
-        {
-            if(rgb_map != nullptr)
-            {
-                std::string map_file_path = "/home/bo/raw_data/map/rgb_map.ply";
-                pcl::io::savePLYFileBinary(map_file_path, *rgb_map);
-            }
         }
 
         std::chrono::milliseconds dura(10);
@@ -254,7 +247,7 @@ void MapBuilder::associateToMap(const Eigen::Quaterniond &Q,const Eigen::Vector3
     cv::Mat SHOW_MAT, DEPTH_SHOW;
     cv::cvtColor(HSV_MAT, SHOW_MAT, cv::COLOR_HSV2BGR);
 
-    cv::imwrite("/home/bo/pro_img.png", SHOW_MAT);
+    //cv::imwrite("/home/bo/pro_img.png", SHOW_MAT);
 
     depthFill(depth_map);
 

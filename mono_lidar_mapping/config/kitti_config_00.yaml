@@ -10,7 +10,7 @@ laser_topic: "/compact_data"
 imu_topic: "/imu/data"
 use_imu: 0
 estimate_imu: 2
-estimate_laser: 1
+estimate_laser: 0
 delay_time: 0.03
 fine_times: 1
 feature_size: 150
@@ -19,14 +19,20 @@ f_threshold: 2.0
 f_dis: 1.0
 outlier_t: 5
 track_cnt: 4
+
 laser_to_camera0: !!opencv-matrix
    rows: 4
    cols: 4
    dt: d
-   data: [0.0519712,  0.0758698,   0.995762, 0,
-      -0.997109,  0.0592834,  0.0475246,  0,
-      -0.0554265,  -0.995354,  0.0787315, 0,
+   data: [4.27682532e-04, -7.21067536e-03,  9.99973911e-01,0.28877894,
+        -9.99967229e-01,  8.08118081e-03,  4.85951966e-04,-0.0554166,
+       -8.08447402e-03, -9.99941349e-01, -7.20698288e-03,0.04542653,
      0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]
+
+#   data: [0.0519712,  0.0758698,   0.995762, 0,
+#      -0.997109,  0.0592834,  0.0475246,  0,
+#      -0.0554265,  -0.995354,  0.0787315, 0,
+#     0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]
 
 cam0_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam00.yaml"
 cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam01.yaml"

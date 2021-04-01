@@ -92,6 +92,7 @@ void odomHandler(const nav_msgs::Odometry::ConstPtr &pose_msg)
 }
 void pointsHandler(const sensor_msgs::PointCloud2ConstPtr &point_msg)
 {
+    //printf("receiving compact data at %f\n", point_msg->header.stamp.toSec());
     point_buf_mutex_.lock();
     point_buf.push(point_msg);
     point_buf_mutex_.unlock();
@@ -200,20 +201,26 @@ void process()
             pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
             pcl::fromROSMsg(*point_msg, *tmp_cloud);
 
-            std::string map_file_path = "/home/bo/raw_data/map/" + std::to_string(point_msg->header.stamp.toNSec()) + ".pcd";
-            pcl::io::savePLYFileBinary(map_file_path, *tmp_cloud);
+            // printf("cloud size %d\n", point_msg->data.size());
+            // printf("cloud size %d\n", tmp_cloud->points.size());
 
-            std::string img_file_path = "/home/bo/raw_data/map/" + std::to_string(point_msg->header.stamp.toNSec()) + ".jpg";
-            cv::imwrite(img_file_path, image);
+            // std::string map_file_path = "/home/bo/raw_data/map/" + std::to_string(point_msg->header.stamp.toNSec()) + ".ply";
+            // pcl::io::savePLYFileBinary(map_file_path, *tmp_cloud);
+
+            // std::string img_file_path = "/home/bo/raw_data/map/" + std::to_string(point_msg->header.stamp.toNSec()) + ".jpg";
+            // cv::imwrite(img_file_path, image);
 
             Eigen::Matrix4d transformation;
             transformation.setIdentity();
 
             transformation.block<3,3>(0,0) = rlc.transpose();
-            transformation.block<3,1>(0,3).setZero(); //= (-1) * rlc.transpose() * tlc;
+            transformation.block<3,1>(0,3) =  (-1) * rlc.transpose() * tlc;
+
+            //std::cout << "transformation: \n" << transformation.matrix() << std::endl;
 
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_out(new pcl::PointCloud<pcl::PointXYZ>);
             pcl::transformPointCloud(*tmp_cloud, *cloud_out, transformation);
+             //printf("cloud size %d\n", cloud_out->points.size());
 
             process_mutex_.lock();
             map_builder.associateToMap(Q, T, cloud_out,image, image_msg->header.stamp.toSec());

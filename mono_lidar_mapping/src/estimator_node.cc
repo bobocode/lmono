@@ -26,7 +26,7 @@
 
 #include "parameter.h"
 #include "image_process/Estimator.h"
-#include "laser_odometry/PointOdometry.h"
+//#include "laser_odometry/PointOdometry.h"
 #include "utils/TicToc.h"
 
 using namespace std;

@@ -48,6 +48,7 @@
 #include <eigen3/Eigen/Geometry>
 #include <Eigen/Eigen>
 
+#include "utils/TicToc.h"
 #include "initial/AxxbSolver.h"
 #include "initial/SFM.h"
 #include "initial/Solve_5pts.h"
@@ -60,7 +61,7 @@
 #include "factor/PoseLocalParameterization.h"
 #include "factor/LaserFactor.h"
 #include "factor/PriorFactor.h"
-#include "laser_odometry/PointMapping.h"
+//#include "laser_odometry/PointMapping.h"
 #include "visualizer/Visualizer.h"
 #include "parameter.h"
 
@@ -106,7 +107,7 @@ class LoopFrame
 };      
 
 
-class Estimator: public MeasurementManager, public PointMapping
+class Estimator: public MeasurementManager  //, public PointMapping
 {
     public:
         Estimator();
@@ -117,7 +118,7 @@ class Estimator: public MeasurementManager, public PointMapping
         void inputImage(const double t, const cv::Mat &img0, const cv::Mat &img1 = cv::Mat());
         void processEstimation();
         void loopCorrection();
-        void processLaserOdom(const lclio::Transform &transform_in, const std_msgs::Header &header);
+       // void processLaserOdom(const lclio::Transform &transform_in, const std_msgs::Header &header);
         //Eigen::Matrix4d processCompactData(const sensor_msgs::PointCloud2ConstPtr &compact_data, const std_msgs::Header &header);
         Eigen::Matrix4d processCompactData(const nav_msgs::Odometry::ConstPtr &laser_odom_msg, const std_msgs::Header &header);
         void processImage(const double &header,const cv::Mat &img0,
@@ -185,6 +186,8 @@ class Estimator: public MeasurementManager, public PointMapping
             NOT_INITED,
             INITED,
         };
+
+        TicToc tic_toc_;
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
         
@@ -255,9 +258,9 @@ class Estimator: public MeasurementManager, public PointMapping
         double para_speed_bias[(WINDOW_SIZE+1)][9];
         double para_loop_pose[7];
 
-        lclio::Transform transform_tobe_mapped_bef_;
-        lclio::Transform transform_es_;
-        lclio::Transform transform_lc_{Eigen::Quaternionf(1, 0, 0, 0), Eigen::Vector3f(0, 0, -0.1)}; ///
+        // lclio::Transform transform_tobe_mapped_bef_;
+        // lclio::Transform transform_es_;
+        // lclio::Transform transform_lc_{Eigen::Quaternionf(1, 0, 0, 0), Eigen::Vector3f(0, 0, -0.1)}; ///
 
         MarginalizationInfo *last_marginalization_info;
         std::vector<double *> last_marginalization_parameter_blocks;

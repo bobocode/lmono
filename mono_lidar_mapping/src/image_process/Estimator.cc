@@ -98,7 +98,7 @@ void Estimator::setParameter()
 void Estimator::setupRos(ros::NodeHandle &nh)
 {
     MeasurementManager::setupRos(nh);
-    PointMapping::SetupRos(nh, false);
+    //PointMapping::SetupRos(nh, false);
 }
 
 double Estimator::reprojectionError(Eigen::Matrix3d &Ri, Eigen::Vector3d &Pi, Eigen::Matrix3d &Rj,Eigen::Vector3d &Pj, Eigen::Vector2d &uvi, Eigen::Vector2d &uvj, double depth, Eigen::Matrix4d &EX_PARA)
@@ -1113,8 +1113,8 @@ void Estimator::double2Matrix()
         Eigen::Matrix3d Rl0_li = q_ex1.normalized().toRotationMatrix()* Rs[WINDOW_SIZE];
         Eigen::Vector3d Pl0_li = q_ex1.normalized().toRotationMatrix() * Ps[WINDOW_SIZE] + t_ex1;
 
-        transform_aft_mapped_.pos = Pl0_li.cast<float>();
-        transform_aft_mapped_.rot = Eigen::Quaterniond(Rl0_li).cast<float>();
+        // transform_aft_mapped_.pos = Pl0_li.cast<float>();
+        // transform_aft_mapped_.rot = Eigen::Quaterniond(Rl0_li).cast<float>();
         
         loop_closure = false;
         loop_local_index = -1;

@@ -93,11 +93,11 @@ set(point_processor_EXT_LIBS
   ${monolio_EXT_LIBS}
 )
 
-add_library(${PROJECT_NAME}-point-processor
-  src/laser_odometry/PointMapping.cc
-  src/laser_odometry/PointOdometry.cc
-  src/laser_odometry/PointProcessor.cc
-)
+#add_library(${PROJECT_NAME}-point-processor
+#  src/laser_odometry/PointMapping.cc
+#  src/laser_odometry/PointOdometry.cc
+#  src/laser_odometry/PointProcessor.cc
+#)
 
 add_library(${PROJECT_NAME}-visualizer
   src/visualizer/Visualizer.cc
@@ -168,26 +168,26 @@ set(image_process_EXT_LIBS
     ${factor_EXT_LIBS}
 )
 
-add_executable(${PROJECT_NAME}_processor_node src/processor_node.cc)
-add_dependencies(${PROJECT_NAME}_processor_node ${PROJECT_NAME}-point-processor)
-target_link_libraries(${PROJECT_NAME}_processor_node
-  ${PROJECT_NAME}-point-processor
-  ${point_processor_EXT_LIBS}
-)
+#add_executable(${PROJECT_NAME}_processor_node src/processor_node.cc)
+#add_dependencies(${PROJECT_NAME}_processor_node ${PROJECT_NAME}-point-processor)
+#target_link_libraries(${PROJECT_NAME}_processor_node
+#  ${PROJECT_NAME}-point-processor
+#  ${point_processor_EXT_LIBS}
+#)
 
-add_executable(${PROJECT_NAME}_odometry_node src/odometry_node.cc)
-add_dependencies(${PROJECT_NAME}_odometry_node ${PROJECT_NAME}-point-processor)
-target_link_libraries(${PROJECT_NAME}_odometry_node
-  ${PROJECT_NAME}-point-processor
-  ${point_processor_EXT_LIBS}
-)
+#add_executable(${PROJECT_NAME}_odometry_node src/odometry_node.cc)
+#add_dependencies(${PROJECT_NAME}_odometry_node ${PROJECT_NAME}-point-processor)
+#target_link_libraries(${PROJECT_NAME}_odometry_node
+#  ${PROJECT_NAME}-point-processor
+ # ${point_processor_EXT_LIBS}
+#)
 
-add_executable(${PROJECT_NAME}_mapping_node src/mapping_node.cc)
-add_dependencies(${PROJECT_NAME}_mapping_node ${PROJECT_NAME}-point-processor)
-target_link_libraries(${PROJECT_NAME}_mapping_node
-  ${PROJECT_NAME}-point-processor
-  ${point_processor_EXT_LIBS}
-)
+#add_executable(${PROJECT_NAME}_mapping_node src/mapping_node.cc)
+#add_dependencies(${PROJECT_NAME}_mapping_node ${PROJECT_NAME}-point-processor)
+#target_link_libraries(${PROJECT_NAME}_mapping_node
+#  ${PROJECT_NAME}-point-processor
+#  ${point_processor_EXT_LIBS}
+#)
 
 add_executable(${PROJECT_NAME}_estimator_node 
     src/estimator_node.cc
@@ -197,14 +197,14 @@ add_dependencies(${PROJECT_NAME}_estimator_node
   ${PROJECT_NAME}-image-process
   ${PROJECT_NAME}-factor
   ${PROJECT_NAME}-initial
-  ${PROJECT_NAME}-point-processor
+  #${PROJECT_NAME}-point-processor
   ${PROJECT_NAME}-visualizer
 )
 target_link_libraries(${PROJECT_NAME}_estimator_node
   ${PROJECT_NAME}-image-process
   ${PROJECT_NAME}-factor
   ${PROJECT_NAME}-initial
-  ${PROJECT_NAME}-point-processor
+  #${PROJECT_NAME}-point-processor
   ${PROJECT_NAME}-visualizer
   ${image_process_EXT_LIBS}
   pthread

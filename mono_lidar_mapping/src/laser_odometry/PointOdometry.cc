@@ -85,6 +85,8 @@ PointOdometry::PointOdometry(float scan_period, int io_ratio, size_t num_max_ite
       kdtree_corner_last_(new pcl::KdTreeFLANN<PointT>()),
       kdtree_surf_last_(new pcl::KdTreeFLANN<PointT>()) {
 
+        
+
   // adapted from LOAM
   // initialize odometry and odometry tf messages
   laser_odometry_msg_.header.frame_id = "/camera_init";
@@ -111,7 +113,7 @@ void PointOdometry::SetupRos(ros::NodeHandle &nh) {
   enable_odom_service_ = nh.advertiseService("/enable_odom", &PointOdometry::EnableOdom, this);
 
   if (compact_data_) {
-    pub_compact_data_ = nh.advertise<sensor_msgs::PointCloud2>("/compact_data", 2);
+    pub_compact_data_ = nh.advertise<sensor_msgs::PointCloud2>("/compact_data", 500);
   } else {
     // advertise laser odometry topics
     pub_laser_cloud_corner_last_ = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_corner_last", 2);
@@ -146,63 +148,30 @@ void PointOdometry::SetupRos(ros::NodeHandle &nh) {
 }
 
 void PointOdometry::LaserCloudSharpHandler(const sensor_msgs::PointCloud2ConstPtr &corner_points_sharp_msg) {
-  time_corner_points_sharp_ = corner_points_sharp_msg->header.stamp;
-
-  // DLOG(INFO) << "corner_points_sharp_msg at " << time_corner_points_sharp_.toSec();
-
-  corner_points_sharp_->clear();
-  pcl::fromROSMsg(*corner_points_sharp_msg, *corner_points_sharp_);
-  std::vector<int> indices;
-  pcl::removeNaNFromPointCloud(*corner_points_sharp_, *corner_points_sharp_, indices);
-  new_corner_points_sharp_ = true;
+  corner_points_sharp_buf_.push(corner_points_sharp_msg);
+  
+  //DLOG(INFO) << "corner_points_sharp_msg at " << time_corner_points_sharp_.toSec();
 }
 
 void PointOdometry::LaserCloudLessSharpHandler(const sensor_msgs::PointCloud2ConstPtr &corner_points_less_sharp_msg) {
-  time_corner_points_less_sharp_ = corner_points_less_sharp_msg->header.stamp;
 
-  // DLOG(INFO) << "corner_points_less_sharp_msg at " << time_corner_points_less_sharp_.toSec();
-
-  corner_points_less_sharp_->clear();
-  pcl::fromROSMsg(*corner_points_less_sharp_msg, *corner_points_less_sharp_);
-  std::vector<int> indices;
-  pcl::removeNaNFromPointCloud(*corner_points_less_sharp_, *corner_points_less_sharp_, indices);
-  new_corner_points_less_sharp_ = true;
+  corner_points_less_sharp_buf_.push(corner_points_less_sharp_msg);
+  
 }
 
 void PointOdometry::LaserCloudFlatHandler(const sensor_msgs::PointCloud2ConstPtr &surf_points_flat_msg) {
-  time_surf_points_flat_ = surf_points_flat_msg->header.stamp;
+  surf_points_flat_buf_.push(surf_points_flat_msg);
 
-  // DLOG(INFO) << "surf_points_flat_msg at " << time_surf_points_flat_.toSec();
-
-  surf_points_flat_->clear();
-  pcl::fromROSMsg(*surf_points_flat_msg, *surf_points_flat_);
-  std::vector<int> indices;
-  pcl::removeNaNFromPointCloud(*surf_points_flat_, *surf_points_flat_, indices);
-  new_surf_points_flat_ = true;
 }
 
 void PointOdometry::LaserCloudLessFlatHandler(const sensor_msgs::PointCloud2ConstPtr &surf_points_less_flat_msg) {
-  time_surf_points_less_flat_ = surf_points_less_flat_msg->header.stamp;
-
-  // DLOG(INFO) << "surf_points_less_flat_msg at " << time_surf_points_less_flat_.toSec();
-
-  surf_points_less_flat_->clear();
-  pcl::fromROSMsg(*surf_points_less_flat_msg, *surf_points_less_flat_);
-  std::vector<int> indices;
-  pcl::removeNaNFromPointCloud(*surf_points_less_flat_, *surf_points_less_flat_, indices);
-  new_surf_points_less_flat_ = true;
+  surf_points_less_flat_buf_.push(surf_points_less_flat_msg);
 }
 
 void PointOdometry::LaserFullCloudHandler(const sensor_msgs::PointCloud2ConstPtr &full_cloud_msg) {
-  time_full_cloud_ = full_cloud_msg->header.stamp;
 
-  // DLOG(INFO) << "full_cloud_msg at " << time_full_cloud_.toSec();
-
-  full_cloud_->clear();
-  pcl::fromROSMsg(*full_cloud_msg, *full_cloud_);
-  std::vector<int> indices;
-  pcl::removeNaNFromPointCloud(*full_cloud_, *full_cloud_, indices);
-  new_full_cloud_ = true;
+  full_cloud_buf_.push(full_cloud_msg);
+  //con_.notify_one();
 }
 
 void PointOdometry::ImuTransHandler(const sensor_msgs::PointCloud2ConstPtr &imu_trans_msg) {
@@ -226,6 +195,67 @@ void PointOdometry::Reset() {
 }
 
 bool PointOdometry::HasNewData() {
+
+  if(!corner_points_sharp_buf_.empty() && ! corner_points_less_sharp_buf_.empty() && !surf_points_less_flat_buf_.empty() && !surf_points_less_flat_buf_.empty())
+  {
+    buf_mutex_.lock();
+    sensor_msgs::PointCloud2ConstPtr corner_points_sharp_msg_ = corner_points_sharp_buf_.front();
+    corner_points_sharp_buf_.pop();
+    time_corner_points_sharp_ = corner_points_sharp_msg_->header.stamp;
+    corner_points_sharp_->clear();
+    pcl::fromROSMsg(*corner_points_sharp_msg_, *corner_points_sharp_);
+    std::vector<int> sharp_indices;
+    pcl::removeNaNFromPointCloud(*corner_points_sharp_, *corner_points_sharp_, sharp_indices);
+    new_corner_points_sharp_ = true;
+
+
+    sensor_msgs::PointCloud2ConstPtr corner_points_less_sharp_msg_ = corner_points_less_sharp_buf_.front();
+    corner_points_less_sharp_buf_.pop();
+    time_corner_points_less_sharp_ = corner_points_less_sharp_msg_->header.stamp;
+    //DLOG(INFO) << "corner_points_less_sharp_msg at " << time_corner_points_less_sharp_.toSec();
+    corner_points_less_sharp_->clear();
+    pcl::fromROSMsg(*corner_points_less_sharp_msg_, *corner_points_less_sharp_);
+    std::vector<int> less_sharp_indices;
+    pcl::removeNaNFromPointCloud(*corner_points_less_sharp_, *corner_points_less_sharp_, less_sharp_indices);
+    new_corner_points_less_sharp_ = true;
+
+    sensor_msgs::PointCloud2ConstPtr surf_points_flat_msg_ = surf_points_flat_buf_.front();
+    surf_points_flat_buf_.pop();
+    time_surf_points_flat_ = surf_points_flat_msg_->header.stamp;
+    //DLOG(INFO) << "surf_points_flat_msg at " << time_surf_points_flat_.toSec();
+    surf_points_flat_->clear();
+    pcl::fromROSMsg(*surf_points_flat_msg_, *surf_points_flat_);
+    std::vector<int> indices;
+    pcl::removeNaNFromPointCloud(*surf_points_flat_, *surf_points_flat_, indices);
+    new_surf_points_flat_ = true;
+
+
+    sensor_msgs::PointCloud2ConstPtr surf_points_less_flat_msg_ = surf_points_less_flat_buf_.front();
+    surf_points_less_flat_buf_.pop();
+    time_surf_points_less_flat_ = surf_points_less_flat_msg_->header.stamp;
+    //DLOG(INFO) << "surf_points_less_flat_msg at " << time_surf_points_less_flat_.toSec();
+    surf_points_less_flat_->clear();
+    pcl::fromROSMsg(*surf_points_less_flat_msg_, *surf_points_less_flat_);
+    std::vector<int> indices0;
+    pcl::removeNaNFromPointCloud(*surf_points_less_flat_, *surf_points_less_flat_, indices0);
+    new_surf_points_less_flat_ = true;
+    
+
+    sensor_msgs::PointCloud2ConstPtr full_cloud_msg_ = full_cloud_buf_.front();
+    full_cloud_buf_.pop();
+    time_full_cloud_ = full_cloud_msg_->header.stamp;
+    //DLOG(INFO) << "full_cloud_msg at " << time_full_cloud_.toSec();
+    full_cloud_->clear();
+    pcl::fromROSMsg(*full_cloud_msg_, *full_cloud_);
+    std::vector<int> indices1;
+    pcl::removeNaNFromPointCloud(*full_cloud_, *full_cloud_, indices1);
+    new_full_cloud_ = true;
+
+    buf_mutex_.unlock();
+
+  }
+
+
   return new_corner_points_sharp_ && new_corner_points_less_sharp_ && new_surf_points_flat_ &&
       new_surf_points_less_flat_ && new_full_cloud_ &&
       fabs((time_corner_points_less_sharp_ - time_corner_points_sharp_).toSec()) < 0.005 &&
@@ -294,8 +324,10 @@ size_t PointOdometry::TransformToEnd(PointCloudPtr &cloud) {
 }
 
 void PointOdometry::Process() {
+
+  
   if (!HasNewData()) {
-    // DLOG(INFO) << "no data received or dropped";
+     //DLOG(INFO) << "no data received or dropped";
     return;
   }
 
@@ -315,6 +347,8 @@ void PointOdometry::Process() {
   bool is_degenerate = false;
 
   ++frame_count_;
+
+  ROS_INFO_STREAM("frame count: " << frame_count_);
 
   size_t last_corner_size = last_corner_cloud_->points.size();
   size_t last_surf_size = last_surf_cloud_->points.size();
@@ -677,7 +711,8 @@ void PointOdometry::Process() {
     kdtree_surf_last_->setInputCloud(last_surf_cloud_);
   }
 
-  ROS_DEBUG_STREAM("odom: " << tic_toc_.Toc() << " ms");
+  ROS_INFO_STREAM("odom stamp: " << time_corner_points_sharp_);
+  ROS_INFO_STREAM("odom: " << tic_toc_.Toc() << " ms");
   /// process ends
 
   PublishResults();
@@ -765,7 +800,9 @@ void PointOdometry::PublishResults() {
 
       PublishCloudMsg(pub_compact_data_, compact_data, sweepTime, "/camera");
 
-      ROS_DEBUG_STREAM("encode compact data and publish time: " << tic_toc_encoder.Toc() << " ms");
+
+      ROS_INFO_STREAM("io_ratio " << io_ratio_ );
+      ROS_INFO_STREAM("encode compact data and publish time: " << tic_toc_encoder.Toc() << " ms");
     } else {
       PublishCloudMsg(pub_laser_cloud_corner_last_, *last_corner_cloud_, sweepTime, "/camera");
       PublishCloudMsg(pub_laser_cloud_surf_last_, *last_surf_cloud_, sweepTime, "/camera");

@@ -42,10 +42,6 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <ceres/ceres.h>
-//libviso
-#include <viso_stereo.h>
-#include <viso_mono.h>
-#include <matrix.h>
 //elas
 
 #include <eigen3/Eigen/Dense>
@@ -122,7 +118,8 @@ class Estimator: public MeasurementManager, public PointMapping
         void processEstimation();
         void loopCorrection();
         void processLaserOdom(const lclio::Transform &transform_in, const std_msgs::Header &header);
-        Eigen::Matrix4d processCompactData(const sensor_msgs::PointCloud2ConstPtr &compact_data, const std_msgs::Header &header);
+        //Eigen::Matrix4d processCompactData(const sensor_msgs::PointCloud2ConstPtr &compact_data, const std_msgs::Header &header);
+        Eigen::Matrix4d processCompactData(const nav_msgs::Odometry::ConstPtr &laser_odom_msg, const std_msgs::Header &header);
         void processImage(const double &header,const cv::Mat &img0,
                 Eigen::Matrix4d &transform_to_init, const cv::Mat &img1 = cv::Mat());
         cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg);
@@ -191,6 +188,10 @@ class Estimator: public MeasurementManager, public PointMapping
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
         
+        double track_time;
+        double pred_time;
+        double laser_decode_time;
+
 
         bool loop_closure;
         int first_refine;
@@ -268,8 +269,8 @@ class Estimator: public MeasurementManager, public PointMapping
         bool get_lost;
         bool static_status;
         bool change_reference_frame;
-        boost::shared_ptr<viso::VisualOdometryMono> mono_visual_odometer_;
-        viso::VisualOdometryMono::parameters mono_visual_odometer_params_;
+        //boost::shared_ptr<viso::VisualOdometryMono> mono_visual_odometer_;
+        //viso::VisualOdometryMono::parameters mono_visual_odometer_params_;
 
         boost::shared_ptr<Visualizer> visualizer_;     
 

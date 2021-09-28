@@ -1247,6 +1247,8 @@ namespace lclio
       DLOG(WARNING) << "ros is not set up, and no results will be published";
       return;
     }
+
+    //ROS_INFO_STREAM("publish feature point clouds time stamp: " << sweep_start_.toSec());
     // publish full resolution and feature point clouds
     PublishCloudMsg(pub_full_cloud_, cloud_in_rings_, sweep_start_, config_.capture_frame_id);
     PublishCloudMsg(pub_corner_points_sharp_, corner_points_sharp_, sweep_start_, config_.capture_frame_id);

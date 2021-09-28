@@ -10,13 +10,13 @@ laser_topic: "/compact_data"
 imu_topic: "/imu/data"
 use_imu: 0
 estimate_imu: 2
-estimate_laser: 0
+estimate_laser: 1
 delay_time: 0.03
-fine_times: 1
-feature_size: 150
+fine_times: 0
+feature_size: 120
 use_rejectF: 1
-f_threshold: 2.0
-f_dis: 1.0
+f_threshold: 0.15
+f_dis: 0.15
 outlier_t: 5
 track_cnt: 4
 
@@ -34,8 +34,9 @@ laser_to_camera0: !!opencv-matrix
 #      -0.0554265,  -0.995354,  0.0787315, 0,
 #     0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]
 
-cam0_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam00.yaml"
-cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam01.yaml"
+
+cam0_calib: "/home/bo/lmono/src/mono_lidar_mapping/config/kitti00_cam.yaml"
+cam1_calib: "/home/bo/lmono/src/mono_lidar_mapping/config/kitti_cam01.yaml"
 
 image_width: 1241
 image_height: 376
@@ -65,7 +66,7 @@ gyr_n: 0.01         # gyroscope measurement noise standard deviation.     #0.05 
 acc_w: 0.001         # accelerometer bias random work noise standard deviation.  #0.02
 gyr_w: 1.0e-4       # gyroscope bias random work noise standard deviation.     #4.0e-5
 g_norm: 9.81007
-factor_weight: 1500
+factor_weight: 1000
 laser_w: 2
 odom_io: 1 #interval frame to public data 
 filter_size: 11

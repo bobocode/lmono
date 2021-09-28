@@ -38,6 +38,7 @@
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_broadcaster.h>
 
@@ -50,7 +51,8 @@
 #include "utils/geometry_utils.h"
 
 using namespace std;
-typedef std::pair<sensor_msgs::ImageConstPtr,sensor_msgs::PointCloud2ConstPtr> PairMeasurement;
+//typedef std::pair<sensor_msgs::ImageConstPtr,sensor_msgs::PointCloud2ConstPtr> PairMeasurement;
+typedef std::pair<sensor_msgs::ImageConstPtr,nav_msgs::Odometry::ConstPtr> PairMeasurement;
 typedef vector<PairMeasurement> PairMeasurements;
 
 
@@ -86,6 +88,7 @@ class MeasurementManager
         std::queue<sensor_msgs::PointCloud2ConstPtr> compact_data_buf;
         std::queue<sensor_msgs::PointCloud2ConstPtr> laser_data_buf;
         std::queue<sensor_msgs::PointCloudConstPtr> loop_buf;
+        std::queue<nav_msgs::Odometry::ConstPtr> odometryBuf;
 
         //message_filters::Subscriber<sensor_msgs::Image> sub_img0(nh,IMAGE0_TOPIC,100);
         //message_filters::Subscriber<sensor_msgs::Image> sub_img1(nh, IMAGE1_TOPIC,100);

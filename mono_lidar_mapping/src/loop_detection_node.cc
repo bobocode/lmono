@@ -35,6 +35,8 @@
 #include "utils/TicToc.h"
 #include "loop_detection/Loop_Detector.h"
 
+
+
 std::queue<sensor_msgs::ImageConstPtr> image_buf;
 std::queue<sensor_msgs::PointCloudConstPtr> point_buf;
 std::queue<nav_msgs::Odometry::ConstPtr> pose_buf;
@@ -360,11 +362,11 @@ int main(int argc, char **argv)
 
         m_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(CAM0);
 
-        BRIEF_PATTERN_FILE = "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/support_files/brief_pattern.yml";
+        BRIEF_PATTERN_FILE = "/home/bo/lmono/src/mono_lidar_mapping/support_files/brief_pattern.yml";
     }
     
 
-    std::string vocabulary_file = "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/support_files/brief_k10L6.bin";
+    std::string vocabulary_file = "/home/bo/lmono/src/mono_lidar_mapping/support_files/brief_k10L6.bin";
     loop_detector.loadVocabulary(vocabulary_file);
 
     ros::Subscriber sub_extrinsic_ = nh.subscribe("/fused/extrinsic",2000,extrinsicHandler);

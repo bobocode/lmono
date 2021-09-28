@@ -18,7 +18,7 @@ using namespace lclio;
 using namespace std;
 using namespace mathutils;
 
-DEFINE_int32(io_ratio, 2, "ratio of io");
+DEFINE_int32(io_ratio, 1, "ratio of io");
 
 int main(int argc, char **argv) {
 

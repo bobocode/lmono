@@ -1,7 +1,7 @@
 %YAML:1.0
 
-cam0_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam00.yaml"
-cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/kitti_cam01.yaml"
+cam0_calib: "/home/bo/lmono/src/mono_lidar_mapping/config/kitti00_cam.yaml"
+cam1_calib: "/home/bo/lmono/src/mono_lidar_mapping/config/kitti_cam01.yaml"
 image0_topic: "/image_left"
 image_width: 1241
 image_height: 376

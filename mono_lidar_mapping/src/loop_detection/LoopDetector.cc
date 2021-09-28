@@ -1,6 +1,7 @@
 #include "loop_detection/Loop_Detector.h"
 
 FILE* loop_odometry= fopen("/home/bo/MonoLidarMapping/loop_odometry.txt","w+");
+FILE* loop_recorder= fopen("/home/bo/MonoLidarMapping/loop_recorder.txt","w+");
 
 LoopDetector::LoopDetector()
 {
@@ -178,13 +179,18 @@ int LoopDetector::detectLoop(KeyFrame* keyframe, int frame_index)
     QueryResults ret;
     TicToc t_query;
     db.query(keyframe->brief_descriptors, ret, 4, frame_index - LOOP_SEARCH_GAP);
+    double query_time = t_query.Toc();
     printf("query time: %f\n", t_query.Toc());
     cout << "Searching for Image " << frame_index << ". " << ret << endl;
 
     TicToc t_add;
     db.add(keyframe->brief_descriptors);
+    double add_time = t_add.Toc();
     printf("add feature time: %f\n", t_add.Toc());
     // ret[0] is the nearest neighbour's score. threshold change with neighour score
+
+    fprintf(loop_recorder, "%f %f %f\n",keyframe->time_stamp, query_time, add_time);
+    fflush(loop_recorder);
 
     bool find_loop = false;
     cv::Mat loop_result;

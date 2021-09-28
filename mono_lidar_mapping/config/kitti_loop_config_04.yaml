@@ -1,0 +1,23 @@
+%YAML:1.0
+
+cam0_calib: "/home/bo/lmono/src/mono_lidar_mapping/config/kitti04_cam.yaml"
+cam1_calib: "/home/bo/lmono/src/mono_lidar_mapping/config/kitti_cam01.yaml"
+image0_topic: "/image_left"
+image_width: 1241
+image_height: 376
+
+min_pnp_loop_num: 10
+min_brief_loop_num: 25
+min_orb_loop_num: 20
+use_orb: 0
+skip_time: 0.5
+skip_dis: 0.5
+skip_cnt: 0
+loop_search_time: 0.3
+loop_search_gap: 100
+debug_image: 0
+angle_threshold: 30
+trans_threshold: 20
+skip_loop_time: 0.0
+skip_loop_dis: 0.0
+image_crop: 256

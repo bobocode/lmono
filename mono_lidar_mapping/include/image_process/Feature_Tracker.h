@@ -29,8 +29,7 @@ Adapted from VINS-mono.
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 #include <eigen3/Eigen/Dense>
-//#include <viso_stereo.h>
-#include <matrix.h>
+//#include <matrix.h>
 
 #include "../parameter.h"
 

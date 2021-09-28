@@ -1,0 +1,124 @@
+%YAML:1.0
+
+#image0_topic: "/cam00/image_raw"
+#image1_topic: "/cam01/image_raw"
+image0_topic: "/image_left"
+image1_topic: "/image_right"
+#laser_odometry_topic: "/aft_mapped_to_init_high_frec"
+laser_odometry_topic: "/aft_mapped_to_init"
+laser_topic: "/compact_data"
+imu_topic: "/imu/data"
+use_imu: 0
+estimate_imu: 2
+estimate_laser: 1
+delay_time: 0.03
+fine_times: 0
+feature_size: 100
+use_rejectF: 1
+f_threshold: 0.12
+f_dis: 0.12
+outlier_t: 5
+track_cnt: 4
+
+laser_to_camera0: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [-0.00185773, -0.00648143,  0.99997727,0.3308678,
+        -0.99996595,  0.00805187, -0.00180552,0.05505896,
+       -0.00803998, -0.99994658, -0.00649617,-0.07543742,
+     0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]
+
+#   data: [0.0519712,  0.0758698,   0.995762, 0,
+#      -0.997109,  0.0592834,  0.0475246,  0,
+#      -0.0554265,  -0.995354,  0.0787315, 0,
+#     0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]
+
+
+cam0_calib: "/home/bo/lmono/src/mono_lidar_mapping/config/kitti04_cam.yaml"
+cam1_calib: "/home/bo/lmono/src/mono_lidar_mapping/config/kitti_cam01.yaml"
+
+image_width: 1241
+image_height: 376
+
+prior_t: 1000
+prior_r: 1000
+
+min_pnp_loop_num: 5
+min_brief_loop_num: 25
+skip_time: 0.2
+skip_dis: 0.5
+skip_cnt: 0
+loop_search_time: 2.0
+loop_search_gap: 100
+debug_image: 1
+camera_height: 1.65
+camera_pitch: 0.0
+open_viso: 0
+stereo: 1
+window_size: 10
+feature_threshold: 10
+solver_time: 30
+num_iteration: 30
+min_dist: 30
+acc_n: 0.1          # accelerometer measurement noise standard deviation. #0.2   0.04
+gyr_n: 0.01         # gyroscope measurement noise standard deviation.     #0.05  0.004
+acc_w: 0.001         # accelerometer bias random work noise standard deviation.  #0.02
+gyr_w: 1.0e-4       # gyroscope bias random work noise standard deviation.     #4.0e-5
+g_norm: 9.81007
+factor_weight: 1200
+laser_w: 2
+odom_io: 1 #interval frame to public data 
+filter_size: 11
+kernel_type: CROSS
+blur_type: bilateral  #or guassian
+kernel_size: 5
+cam0_T_cam1: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [ 1, 0,
+       0, 0.537151,
+       0, 1,
+       0, 0,
+       0, 0,
+       1, 0, 0., 0., 0., 1. ]
+
+imu_T_cam0: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [4.99006441e-03, -9.99987238e-01, -7.24718174e-04, -8.15190930e-01,
+      -1.70826848e-02,  6.39376611e-04, -9.99853894e-01,  2.49688618e-01,
+      9.99841703e-01,  5.00171632e-03, -1.70792730e-02, -1.13444189e+00,
+     0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]
+
+elas_parameters:
+   disp_min: 0
+   disp_max: 255
+   support_threshold: 0.95
+   support_texture: 10
+   candidate_stepsize: 5
+   incon_window_size: 5
+   incon_threshold: 5
+   incon_min_support: 5
+   add_corners: 0
+   grid_size: 20
+   beta: 0.02
+   gamma: 3
+   sigma: 1
+   sradius: 2
+   match_texture: 1
+   lr_threshold: 2
+   speckle_sim_threshold: 1
+   speckle_size: 200
+   ipol_gap_width: 300
+   filter_median: 0
+   filter_adaptive_mean: 1
+   postprocess_only_left: 1
+   subsampling: 0
+   
+   
+ 
+
+

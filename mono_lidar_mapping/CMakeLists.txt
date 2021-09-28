@@ -4,14 +4,17 @@ message("$PROJECT_SOURCE_DIR")
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++14)
 set(CMAKE_CXX_FLAGS "-std=c++11")
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
+#set(CMAKE_BUILD_TYPE "Release")
+#set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
+
+SET(CMAKE_BUILD_TYPE "Debug")
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  libviso2
   roscpp
   sensor_msgs
   nav_msgs
@@ -37,7 +40,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
 )
 
-add_message_files(DIRECTORY msg FILES VisoInfo.msg)
+#add_message_files(DIRECTORY msg FILES VisoInfo.msg)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 find_package(Gflags)
@@ -50,7 +53,7 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 find_package(PCL REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 3.2 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIR})
 
 find_package(Ceres REQUIRED)

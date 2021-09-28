@@ -13,9 +13,10 @@
 *******************************************************/
 #include "image_process/Estimator.h"
 
-FILE* loam_odometry = fopen("/home/bo/MonoLidarMapping/loam_odometry.txt","w+");
-FILE* new_odometry= fopen("/home/bo/MonoLidarMapping/new_odometry.txt","w+");
-FILE* extrinsic= fopen("/home/bo/MonoLidarMapping/extrinsic.txt","w+");
+FILE* loam_odometry = fopen("/home/bo/lmono/kitti/loam_odometry.txt","w+");
+FILE* new_odometry= fopen("/home/bo/lmono/kitti/new_odometry.txt","w+");
+FILE* extrinsic= fopen("/home/bo/lmono/kitti/extrinsic.txt","w+");
+FILE* times_recorder= fopen("/home/bo/lmono/kitti/times_recorder.txt","w+");
 
 Estimator::Estimator():feature_tracker{}, feature_manager{}
 {
@@ -43,20 +44,6 @@ void Estimator::setParameter()
 
         std::cout << projection << std::endl; 
 
-    }
-
-    if(OPEN_VISO)
-    {
-        get_lost = false;
-        change_reference_frame = false;
-
-        mono_visual_odometer_params_.calib.cu = cameras[0].cx;
-        mono_visual_odometer_params_.calib.cv = cameras[0].cy;
-        mono_visual_odometer_params_.calib.f = cameras[0].fx;
-        mono_visual_odometer_params_.height = CAMERA_HEIGHT;
-        mono_visual_odometer_params_.pitch = CAMERA_PITCH;
-
-        mono_visual_odometer_.reset(new viso::VisualOdometryMono(mono_visual_odometer_params_));
     }
 
     visualizer_.reset(new Visualizer(feature_tracker.cams[0]));
@@ -202,10 +189,11 @@ void Estimator::outliersRejection(std::set<int> &removeIndex, const double &erro
     printf("outlier Num: %d\n", rejectCnt);
 }
 
-Eigen::Matrix4d Estimator::processCompactData(const sensor_msgs::PointCloud2ConstPtr &compact_data,
+/*Eigen::Matrix4d Estimator::processCompactData(const sensor_msgs::PointCloud2ConstPtr &compact_data,
                                    const std_msgs::Header &header) 
 {
     //1. process laser data
+    tic_toc_.Tic();
     PointMapping::CompactDataHandler(compact_data);
 
     // TransformAssociateToMap();
@@ -213,7 +201,7 @@ Eigen::Matrix4d Estimator::processCompactData(const sensor_msgs::PointCloud2Cons
 
     /// 2. process decoded data
     PointMapping::Process();
-    
+    laser_decode_time = tic_toc_.Toc();
     lclio::Transform transform_to_init_ = transform_aft_mapped_;
 
     Eigen::Matrix4d Pos;
@@ -236,14 +224,58 @@ Eigen::Matrix4d Estimator::processCompactData(const sensor_msgs::PointCloud2Cons
 
     last_laser_t = L0_P;
 
-    fprintf(loam_odometry, "%f,%f,%f,%f,%f,%f,%f,%f \n", compact_data->header.stamp.toSec(),L0_P.x(), L0_P.y(), L0_P.z(),
+    fprintf(loam_odometry, "%f %f %f %f %f %f %f %f \n", compact_data->header.stamp.toSec(),L0_P.x(), L0_P.y(), L0_P.z(),
                                                         L0_Q.w(), L0_Q.x(), L0_Q.y(), L0_Q.z());
     fflush(loam_odometry);
     //ROS_INFO_STREAM("laser transformation to init: \n" << Pos.matrix());
 
     return Pos;
 
+}*/
+
+Eigen::Matrix4d Estimator::processCompactData(const nav_msgs::Odometry::ConstPtr &laser_odom_msg, const std_msgs::Header &header)
+{
+
+    Eigen::Matrix4d Pos;
+    Pos.setIdentity();
+
+    Eigen::Quaterniond q_odom;
+    Eigen::Vector3d t_odom;
+
+    q_odom.x() = laser_odom_msg->pose.pose.orientation.x;
+    q_odom.y() = laser_odom_msg->pose.pose.orientation.y;
+    q_odom.z() = laser_odom_msg->pose.pose.orientation.z;
+    q_odom.w() = laser_odom_msg->pose.pose.orientation.w;
+
+    t_odom.x() = laser_odom_msg->pose.pose.position.x;
+    t_odom.y() = laser_odom_msg->pose.pose.position.y;
+    t_odom.z() = laser_odom_msg->pose.pose.position.z;
+
+   
+
+    Pos.block<3,3>(0,0) = q_odom.toRotationMatrix();
+    Pos.block<3,1>(0,3) = t_odom;
+
+    if((t_odom - last_laser_t).norm() < 0.1)
+    {
+        static_status = true;
+    }else
+    {
+        static_status = false;
+    }
+    
+
+    last_laser_t = t_odom;
+
+    fprintf(loam_odometry, "%f %f %f %f %f %f %f %f \n", laser_odom_msg->header.stamp.toSec(),t_odom.x(), t_odom.y(), t_odom.z(),
+                                                         q_odom.x(), q_odom.y(), q_odom.z(), q_odom.w());
+    fflush(loam_odometry);
+    //ROS_INFO_STREAM("laser transformation to init: \n" << Pos.matrix());
+
+    return Pos;
+
 }
+
 
 cv::Mat Estimator::getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
 {
@@ -273,67 +305,6 @@ cv::Mat Estimator::getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
     return img;
 }
 
-bool Estimator::visoHandler(const cv::Mat &img0, Eigen::Matrix4d &pos, const cv::Mat &img1)
-{
-    int32_t width = img0.cols;
-    int32_t height = img0.rows;
-
-    uint8_t* l_image_data;
-    uint8_t* r_image_data;
-    int l_step, r_step;
-
-    l_image_data = img0.data;
-    l_step = img0.step[0];
-    int32_t dims[] = {width, height, width};
-
-    pos.setIdentity();
-
-    bool success;
-
-    if(frame_count ==0)
-    {
-        success = mono_visual_odometer_->process(l_image_data, dims);
-    }else
-    {
-        success = mono_visual_odometer_->process(l_image_data,dims,change_reference_frame);
-    }
-
-    if(success)
-    {
-        viso::Matrix delta_motion = viso::Matrix::inv(mono_visual_odometer_->getMotion());
-
-        Eigen::Matrix3d rr;
-        Eigen::Vector3d tt;
-
-        rr << delta_motion.val[0][0],delta_motion.val[0][1], delta_motion.val[0][2],
-                    delta_motion.val[1][0],delta_motion.val[1][1], delta_motion.val[1][2],
-                    delta_motion.val[2][0], delta_motion.val[2][1],delta_motion.val[2][2];
-                    
-        tt << delta_motion.val[0][3], delta_motion.val[1][3], delta_motion.val[2][3];
-
-        pos.block<3,3>(0,0) = rr;
-        pos.block<3,1>(0,3) = tt;
-
-    }else
-    {
-        if(frame_count !=0)
-        {
-            change_reference_frame = true;
-        }
-        
-    }
-    
-    return success;
-    
-}
-
-void Estimator::resetViso()
-{
-    frame_count = 0;
-    prev_cam_pose.setIdentity();
-    C0_Pos.setIdentity();
-    all_image_frame.clear();
-}
 
 void Estimator::loopCorrection()
 {
@@ -402,40 +373,29 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
 
     tic_toc_.Tic();
     feature = feature_tracker.trackImage(header, image_l);
+    track_time = tic_toc_.Toc();
     ROS_INFO_STREAM("feature tracker time: " << tic_toc_.Toc());
+
 
     cv::Mat imgTrack = feature_tracker.getTrackImage();
     visualizer_->pubTrackImg(imgTrack, header);
 
     if(feature_manager.featureCheck(frame_count, feature, header))
     {
-        marginalization_flag = MARGIN_OLD;
         printf("keyframe\n");
+        marginalization_flag = MARGIN_OLD;
+        
 
     }else
     {
-        marginalization_flag = MARGIN_SECOND_NEW;
         printf("non-keyframe\n");
+        marginalization_flag = MARGIN_SECOND_NEW;
+        
     }
     
     Header[frame_count] = header;
     Eigen::Matrix4d pos;
     pos.setIdentity();
-
-    if(OPEN_VISO)
-    {
-        if(visoHandler(image_l, pos))
-        {
-            C0_Pos = prev_cam_pose * pos;
-
-        }else
-        {
-            ROS_WARN_STREAM("viso odometry lost");
-            get_lost = true;
-            resetViso();
-            visoHandler(image_l,pos);
-        }
-    }
 
     ImageFrame imageframe(feature, header,transform_to_init, C0_Pos);
     all_image_frame.push_back(std::make_pair(header, imageframe));
@@ -445,7 +405,7 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
         Eigen::Matrix4d laser_delta_pose = prev_laser_pose.inverse() * transform_to_init;
         Eigen::Quaterniond laser_delta_q = Eigen::Quaterniond(laser_delta_pose.block<3,3>(0,0));
         
-        if(frame_count !=0 && !OPEN_VISO)
+        if(frame_count !=0)
         {
             std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> corres = feature_manager.getCorresponding(frame_count-1, frame_count);
             Matrix3d calib_rcl;
@@ -467,27 +427,6 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
 
         }
 
-        if(frame_count !=0 && OPEN_VISO)
-        {
-            Matrix3d calib_rcl;
-            Eigen::Quaterniond camera_delta_q = Eigen::Quaterniond(pos.block<3,3>(0,0));
-
-            ROS_INFO_STREAM("delta_cam_q: \n" << camera_delta_q.toRotationMatrix());
-            ROS_INFO_STREAM("delta_laser_q: \n" << laser_delta_q.toRotationMatrix());
-
-
-            if(axxbsolver.CalibrationExRotation(camera_delta_q,laser_delta_q, calib_rcl, 10))
-            {
-                ROS_WARN_STREAM("initial extrinsic rotation calib between cam0 and laser success");
-                ROS_WARN_STREAM("initial extrinsic rotation: " << endl << calib_rcl);
-
-                TLC[0].block<3,3>(0,0) = calib_rcl.transpose();
-                TLC[1].block<3,3>(0,0) = calib_rcl.transpose();
-
-                ESTIMATE_LASER = 1;
-            }
-
-        }
     }
 
     if(ESTIMATE_LASER != 2)
@@ -495,7 +434,7 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
         Eigen::Vector3d t_ex1 = TLC[0].block<3,1>(0,3);
         Eigen::Quaterniond q_ex1(TLC[0].block<3,3>(0,0));
 
-        fprintf(extrinsic, "%f,%f,%f,%f , %f, %f, %f, %f \n", header,t_ex1.x() ,t_ex1.y(),t_ex1.z(),
+        fprintf(extrinsic, "%f %f %f %f %f %f %f %f \n", header,t_ex1.x() ,t_ex1.y(),t_ex1.z(),
                                                                 q_ex1.w(), q_ex1.x(), q_ex1.y(), q_ex1.z());
         fflush(extrinsic);
     }
@@ -548,6 +487,7 @@ void Estimator::processImage(const double &header,const cv::Mat &img0, Eigen::Ma
         //check();
         tic_toc_.Tic();
         optimization();
+        pred_time = tic_toc_.Toc();
         ROS_INFO_STREAM("prediction time: " << tic_toc_.Toc());
         outliersRejection(removeIndex,OUTLIER_T);
         feature_manager.removeOutlier(removeIndex);
@@ -592,9 +532,13 @@ void Estimator::processEstimation()
         PairMeasurement mm = measurement_buf.front();
         measurement_buf.pop();
 
-        sensor_msgs::PointCloud2ConstPtr pts_msg = mm.second;
-        ROS_INFO_STREAM("processing laser data with stamp " << pts_msg->header.stamp.toNSec());
-        L0_Pos = this->processCompactData(pts_msg, pts_msg->header);
+        nav_msgs::Odometry::ConstPtr odom_msg = mm.second;
+        ROS_INFO_STREAM("processing laser data with stamp " << odom_msg->header.stamp.toNSec());
+        L0_Pos = this->processCompactData(odom_msg, odom_msg->header);
+
+        //sensor_msgs::PointCloud2ConstPtr pts_msg = mm.second;
+        //ROS_INFO_STREAM("processing laser data with stamp " << pts_msg->header.stamp.toNSec());
+        //L0_Pos = this->processCompactData(pts_msg, pts_msg->header);
 
         sensor_msgs::ImageConstPtr img0_msg = mm.first;
         
@@ -692,13 +636,18 @@ void Estimator::processEstimation()
             tlc = TLC[0].block<3,1>(0,3);
             qlc = TLC[0].block<3,3>(0,0);
 
+            Eigen::Vector3d cur_p = Ps[WINDOW_SIZE];
+            Eigen::Quaterniond cur_q( Rs[WINDOW_SIZE]);
 
-            Eigen::Vector3d cur_p = qlc * Ps[WINDOW_SIZE] + tlc;
-            Eigen::Quaterniond cur_q(qlc * Rs[WINDOW_SIZE]);
-            fprintf(new_odometry, "%f,%f,%f,%f,%f,%f,%f,%f \n", img0_msg->header.stamp.toSec(),cur_p.x(), cur_p.y(), cur_p.z(),
-                                                            cur_q.w(), cur_q.x(), cur_q.y(), cur_q.z());
+            fprintf(new_odometry, "%f %f %f %f %f %f %f %f\n", Header[WINDOW_SIZE],cur_p.x(), cur_p.y(), cur_p.z(),
+                                                            cur_q.x(), cur_q.y(), cur_q.z(), cur_q.w());
             fflush(new_odometry);
         }
+
+        fprintf(times_recorder, "%f %f %f %f\n",img0_msg->header.stamp.toSec(), track_time, laser_decode_time,pred_time);
+        fflush(times_recorder);
+
+        
         prev_laser_pose = L0_Pos;
     }
 
@@ -862,10 +811,10 @@ bool Estimator::solveInitialEx(std::vector<std::pair<double, ImageFrame>> all_im
         Eigen::Vector3d laser_Pij = laser_Ri.transpose() * (laser_Pj - laser_Pi);
 
         // ROS_INFO_STREAM("sfm R" << i <<" to R" << j <<": \n" << cam_Rij);
-        // ROS_INFO_STREAM("sfm T" << i <<" to T" << j << ": \n" << cam_Pij.transpose());
+        //ROS_INFO_STREAM("sfm T" << i <<" to T" << j << ": \n" << cam_Pij.transpose());
 
         // ROS_INFO_STREAM("laser R" << i <<" to R" << j << ": \n"<< laser_Rij);
-        // ROS_INFO_STREAM("laser T" << i <<" to T" << j << ": \n" << laser_Pij.transpose());
+        //ROS_INFO_STREAM("laser T" << i <<" to T" << j << ": \n" << laser_Pij.transpose());
 
         tmp_A.block<3,3>(0,0) = -(laser_Rij.normalized() - Eigen::Matrix3d::Identity());// 
         tmp_A.block<3,1>(0,3) = rlc * cam_Pij /100;
@@ -887,7 +836,7 @@ bool Estimator::solveInitialEx(std::vector<std::pair<double, ImageFrame>> all_im
     x(3) = s;
     std::cout << "Iniitial tlc: " << tlc.transpose() << std::endl;
     std::cout << (-rlc.transpose()* tlc).transpose() << std::endl;
-    std::cout << "scale: " << s << std::endl;
+    std::cout << "scale: " << s * 100 << std::endl;
 
     if(s<=0)
     {
@@ -902,8 +851,8 @@ bool Estimator::solveInitialEx(std::vector<std::pair<double, ImageFrame>> all_im
 
 bool Estimator::runInitialization()
 {
-    if(!OPEN_VISO)
-    {
+   
+   /* {
         Eigen::Quaterniond Q[frame_count+1];
         Eigen::Vector3d T[frame_count+1];
 
@@ -1017,23 +966,23 @@ bool Estimator::runInitialization()
     {
         ROS_WARN_STREAM("solve s failed!");
         return false;
-    }
+    }*/
 
-    double s = x(3);
+    //double s = x(3);
     
 
     Eigen::Matrix3d rlc = TLC[0].block<3,3>(0,0);
     Eigen::Vector3d tlc = TLC[0].block<3,1>(0,3);
     //tlc.setZero();
 
-    Eigen::Matrix3d cam_R0 = all_image_frame[0].second.R;
-    Eigen::Vector3d cam_P0 = all_image_frame[0].second.T;
+    //Eigen::Matrix3d cam_R0 = all_image_frame[0].second.R;
+    //Eigen::Vector3d cam_P0 = all_image_frame[0].second.T;
     Eigen::Vector3d laser_P0 = all_image_frame[0].second.L0_T;
 
     for(int i =0; i <=frame_count;i++)
     {
-        Eigen::Matrix3d cam_Ri = all_image_frame[i].second.R;
-        Eigen::Vector3d cam_Pi = all_image_frame[i].second.T;
+        //Eigen::Matrix3d cam_Ri = all_image_frame[i].second.R;
+        //Eigen::Vector3d cam_Pi = all_image_frame[i].second.T;
 
         // Rs[i] = cam_Ri * rlc.transpose();
         // Ps[i] = s * cam_Pi - Rs[i] * tlc - (s * cam_P0 - cam_R0 * rlc.transpose() * tlc);

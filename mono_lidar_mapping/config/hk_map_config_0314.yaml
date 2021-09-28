@@ -5,7 +5,7 @@ cam1_calib: "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/config/hk_cam01.ya
 
 image_width: 1920
 image_height: 1200
-image0_topic: "/left_camera_pointgrey/image_color""
+image0_topic: "/left_camera_pointgrey/image_color"
 skip_dis: 0
 filter_size: 11
 kernel_type: CROSS

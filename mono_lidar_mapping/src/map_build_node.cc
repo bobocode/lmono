@@ -66,6 +66,9 @@ ros::Publisher pub_pro_img_;
 ros::Publisher pub_rgb_map_;
 
 MapBuilder map_builder;
+TicToc tic_toc_;
+
+FILE* mapping_recorder= fopen("/home/bo/MonoLidarMapping/mapping_recorder.txt","w+");
 
 void imageHandler(const sensor_msgs::ImageConstPtr &image_msg)
 {
@@ -223,7 +226,11 @@ void process()
              //printf("cloud size %d\n", cloud_out->points.size());
 
             process_mutex_.lock();
+            tic_toc_.Tic();
             map_builder.associateToMap(Q, T, cloud_out,image, image_msg->header.stamp.toSec());
+
+            fprintf(mapping_recorder, "%f %f \n",image_msg->header.stamp.toSec(), tic_toc_.Toc());
+            fflush(mapping_recorder);
             process_mutex_.unlock();
 
         }

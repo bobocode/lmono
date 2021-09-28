@@ -20,7 +20,7 @@
 #include <thread>
 #include <mutex>
 #include <opencv2/opencv.hpp>
-#include <viso_stereo.h>
+//#include <viso_stereo.h>
 
 struct camera_calib
 {

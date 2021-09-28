@@ -1,0 +1,10 @@
+<!-- -*- mode: XML -*- -->
+
+<launch>
+  <arg name="rviz" default="true" />
+  
+ <arg name="loop_config_path" default = "$(find monolio)/config/kitti_loop_config_03.yaml" />
+  <node pkg = "monolio" type = "monolio_loop_detection_node" name ="monolio_loop_detection" output = "screen">
+        <param name = "loop_config_file" type= "string" value ="$(arg loop_config_path)"/>
+  </node> 
+</launch>

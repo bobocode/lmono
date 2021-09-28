@@ -341,7 +341,7 @@ void MapBuilder::depthFill(cv::Mat &DMap)
 
     if(KERNEL_TYPE == "FULL")
     {
-       kernel_mat = cv::Mat::ones(KERNEL_SIZE, KERNEL_SIZE,CV_8UC1);
+        kernel_mat = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(KERNEL_SIZE,KERNEL_SIZE));
 
     }else if(KERNEL_TYPE == "CROSS")
     {
@@ -351,6 +351,7 @@ void MapBuilder::depthFill(cv::Mat &DMap)
     {
         kernel_mat = cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(KERNEL_SIZE,KERNEL_SIZE));
     }
+
     
     //dilate
     cv::Mat dilate_mat;
@@ -358,8 +359,8 @@ void MapBuilder::depthFill(cv::Mat &DMap)
 
     //hole closing
     cv::Mat hole_fill;
-    cv::morphologyEx(dilate_mat,hole_fill,cv::MORPH_CLOSE, kernel_mat);
-    cv::dilate(hole_fill,dilate_mat,cv::Mat::ones(7,7,CV_8UC1));
+    cv::morphologyEx(dilate_mat,hole_fill,cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT,cv::Size(KERNEL_SIZE,KERNEL_SIZE)));
+    cv::dilate(hole_fill,dilate_mat,cv::getStructuringElement(cv::MORPH_RECT,cv::Size(7,7)));
 
     for(int k =0; k< hole_fill.rows; k++)
     {
@@ -373,7 +374,7 @@ void MapBuilder::depthFill(cv::Mat &DMap)
     }
 
     //large fill
-    cv::dilate(hole_fill,dilate_mat,cv::Mat::ones(31,31,CV_8UC1));
+    /*cv::dilate(hole_fill,dilate_mat,cv::Mat::ones(31,31,CV_8UC1));
     for(int k =0; k< hole_fill.rows; k++)
     {
         for(int q =0; q< hole_fill.cols; q++)
@@ -383,7 +384,7 @@ void MapBuilder::depthFill(cv::Mat &DMap)
                 hole_fill.at<uchar>(k,q) = dilate_mat.at<uchar>(k,q);
             }
         }
-    }
+    }*/
 
     //extend highest to the top of image
 

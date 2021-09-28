@@ -77,6 +77,11 @@
 
 #include <std_srvs/SetBool.h>
 
+#include <queue>
+#include <map>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "utils/Twist.h"
 #include "utils/common_ros.h"
 #include "utils/TicToc.h"
@@ -173,6 +178,17 @@ class PointOdometry {
   PointCloudPtr laser_cloud_ori_;
   PointCloudPtr coeff_sel_;
 
+  std::mutex buf_mutex_;
+  std::mutex process_mutex_;
+  std::condition_variable con_;
+
+  std::queue<sensor_msgs::PointCloud2ConstPtr> corner_points_sharp_buf_;
+  std::queue<sensor_msgs::PointCloud2ConstPtr> corner_points_less_sharp_buf_;
+  std::queue<sensor_msgs::PointCloud2ConstPtr> surf_points_flat_buf_;
+  std::queue<sensor_msgs::PointCloud2ConstPtr> surf_points_less_flat_buf_;
+  std::queue<sensor_msgs::PointCloud2ConstPtr> full_cloud_buf_;
+
+
   pcl::KdTreeFLANN<PointT>::Ptr kdtree_corner_last_;
   pcl::KdTreeFLANN<PointT>::Ptr kdtree_surf_last_;
 
@@ -216,7 +232,7 @@ class PointOdometry {
 //  ros::Subscriber sub_imu_trans_;               ///< IMU transformation information message subscriber
 
   bool is_ros_setup_ = false;
-  bool compact_data_ = false;
+  bool compact_data_ = true;
   bool enable_odom_ = true;
   bool no_deskew_ = false;
 

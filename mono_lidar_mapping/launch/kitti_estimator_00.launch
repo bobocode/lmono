@@ -2,17 +2,23 @@
 
 <launch>
   <arg name="rviz" default="true" />
-  <node pkg="monolio" type="monolio_processor_node" name="monolio_processor" output="log">
+  <!--<node pkg="monolio" type="monolio_processor_node" name="monolio_processor" output="screen">
   	<param name="sensor_type" type="int" value="64" />
-  </node>
+  </node>-->
 
-  <arg name="config_path" default = "$(find monolio)/config/kitti_config_00.yaml" />
+  <!--<node pkg="monolio" type="monolio_odometry_node" name="monolio_odometry" output="screen">
+  </node>-->
+
+  <!--<node pkg="monolio" type="monolio_mapping_node" name="monolio_mapping" output="screen">
+  </node>-->
+
+  <arg name="config_path" default = "$(find monolio)/config/kitti_config_01.yaml" />
   <node pkg = "monolio" type = "monolio_estimator_node" name ="monolio_estimator" output = "screen">
         <param name = "config_file" type= "string" value ="$(arg config_path)"/>
   </node>
   
  <!--<arg name="loop_config_path" default = "$(find monolio)/config/kitti_loop_config_00.yaml" />
-  <node pkg = "monolio" type = "monolio_loop_detection_node" name ="monolio_loop_detection" output = "screen">
+  <node pkg = "monolio" type = "monolio_loop_detection_node" name ="monolio_loop_detection" output = "screen" launch-prefix="gnome-terminal -x gdb -ex run args ">
         <param name = "loop_config_file" type= "string" value ="$(arg loop_config_path)"/>
   </node> -->
 

@@ -173,7 +173,7 @@ void readParameters(ros::NodeHandle &n)
         std::cout << "laser to cam0: \n" << LASER_TO_CAM0.matrix() << std::endl;
     }
     
-    BRIEF_PATTERN_FILE = "/home/bo/MonoLidarMapping/src/mono_lidar_mapping/support_files/brief_pattern.yml";
+    BRIEF_PATTERN_FILE = "/home/bo/lmono/src/mono_lidar_mapping/support_files/brief_pattern.yml";
 
     std::cout << "cam0 to cam1: \n" << CAM0_T_CAM1.matrix() << std::endl;
 

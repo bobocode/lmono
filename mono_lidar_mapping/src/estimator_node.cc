@@ -51,11 +51,11 @@ void Run()
     estimator.setParameter();
     estimator.setupRos(*nh_ptr);
 
-    PointOdometry odometry(0.1, ODOM_IO);
-    odometry.SetupRos(*nh_ptr);
-    odometry.Reset();
+    // PointOdometry odometry(0.1, ODOM_IO);
+    // odometry.SetupRos(*nh_ptr);
+    // odometry.Reset();
 
-    thread odom(&PointOdometry::Spin, &odometry);
+    //thread odom(&PointOdometry::Spin, &odometry);
     thread measurement_manager(&Estimator::measurementHandler, &estimator);
     thread loop_manager(&Estimator::setLoopFrame,&estimator);
     //thread measurement_process(&Estimator::processEstimation, &estimator);

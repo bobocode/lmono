@@ -9,13 +9,13 @@ imu_topic: "/imu/data"
 use_imu: 0
 estimate_imu: 2
 estimate_laser: 1
-fine_times: 1
+fine_times: 0
 feature_size: 150
 use_rejectF: 1
-f_threshold: 0.3
+f_threshold: 1
 outlier_t: 5
-f_dis: 0.01
-track_cnt: 3
+f_dis: 0.5
+track_cnt: 4
 laser_to_camera0: !!opencv-matrix
    rows: 4
    cols: 4
@@ -53,6 +53,7 @@ skip_cnt: 0
 loop_search_time: 2.0
 loop_search_gap: 100
 debug_image: 1
+
 camera_height: 1.65
 camera_pitch: 0.0
 open_viso: 0
@@ -67,6 +68,7 @@ gyr_n: 0.01         # gyroscope measurement noise standard deviation.     #0.05 
 acc_w: 0.001         # accelerometer bias random work noise standard deviation.  #0.02
 gyr_w: 1.0e-4       # gyroscope bias random work noise standard deviation.     #4.0e-5
 g_norm: 9.81007
+
 factor_weight: 1500
 laser_w: 1
 odom_io: 1 #interval frame to public data 

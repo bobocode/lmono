@@ -71,6 +71,7 @@ or
        roslaunch monolio kitti_map_00.launch
 
 <h2>3.Acknowledgements</h2>
+ Thanks to [A-LOAM](https://github.com/HKUST-Aerial-Robotics/A-LOAM) and [VINS-MONO](https://github.com/HKUST-Aerial-Robotics/VINS-Mono) code authors. The major codes in this repository are borrowed from their efforts.
 
- This code is modified from [A-LOAM](https://github.com/HKUST-Aerial-Robotics/A-LOAM) and [VINS-MONO](https://github.com/HKUST-Aerial-Robotics/VINS-Mono).
+  
  

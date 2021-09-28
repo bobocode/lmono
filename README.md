@@ -7,6 +7,8 @@ This is a framework of LiDAR-monocular camera fusion system. Visual information 
 - [x] automatic and real-time calibration
 - [x] 3D dense map with color information
 
+**Sep, 2021** This work is already submitted to RAL.
+
 <h2>1. Prerequisites</h2>
 <h3>1.1 Ubuntu and ROS</h3>
 

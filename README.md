@@ -1,6 +1,6 @@
 <h1>lmono</h1>
 <h2>LMONO-Fusion: An Online SLAM System based on LiDAR-Monocular Camera Sensor Fusion</h2>
-This is a framework of LiDAR-monocular camera fusion system. Visual information from monocular camera assist in scene recognization in LiDAR odometry and dense mapping. Automatic calibration between LiDAR and a single camera is provided as well.
+This is a framework of LiDAR-monocular camera fusion system. Visual information from monocular camera assist in scene recognization in LiDAR odometry and dense mapping. Automatic calibration between LiDAR and a single camera is provided as well. The pre-print version of our paper is available [here]().
 
 - [x] laser odometry
 - [x] scene recognition/ loop detection

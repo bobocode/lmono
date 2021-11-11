@@ -44,10 +44,6 @@ This is a framework of LiDAR-monocular camera fusion system. Visual information 
       roslaunch aloam_velodyne kitti_helper.launch
 
 <h3>2.3 Launch ROS in different terminals</h3>
-
-* Rosbag Play
-
-      rosbag play xxx.bag
       
 * Launch [ALOAM](https://github.com/HKUST-Aerial-Robotics/A-LOAM) to gain LiDAR measurements
 
@@ -61,6 +57,10 @@ or
 * Launch Estimator Node
 
        roslaunch monolio kitti_estimator_xx.launch
+       
+* Rosbag Play
+
+      rosbag play xxx.bag
 
 * If you want to open loop detection
 

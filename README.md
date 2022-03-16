@@ -7,7 +7,7 @@ This is a framework of LiDAR-monocular camera fusion system. Visual information 
 - [x] scene recognition/ loop detection
 - [x] automatic and real-time calibration
 - [x] 3D dense map with color information
-- [x] ground segmentation
+- [ ] ground segmentation
 - [ ] communication interface between LiDAR and Camera
 - [ ] speeding up 
 

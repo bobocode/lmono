@@ -6,7 +6,7 @@ This is a framework of LiDAR-monocular camera fusion system. Visual information 
 
 - [x] laser odometry
 - [x] scene recognition/ loop detection
-- [x] automatic and real-time calibration
+- [x] automatic and real-time calibration (Code of this part is not fully uploaded)
 - [x] 3D dense map with color information
 - [ ] ground segmentation
 - [ ] communication interface between LiDAR and Camera
